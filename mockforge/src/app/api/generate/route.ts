@@ -1,0 +1,68 @@
+import { NextResponse } from "next/server";
+import { runGeneration } from "@/lib/image-provider";
+import type { PresetId } from "@/lib/presets";
+
+export async function POST(request: Request) {
+  const body = await request.json().catch(() => ({}));
+
+  const preset = (body?.preset ?? "clean_studio") as PresetId;
+  const category = body?.category;
+  const format = body?.format;
+  const productName = body?.productName;
+  const sourceImageUrl = body?.sourceImageUrl;
+  const variant = body?.variant === "b" ? "b" : body?.variant === "c" ? "c" : "a";
+  const provider = process.env.IMAGE_PROVIDER || "fal";
+
+  if (provider === "fal" && !process.env.FAL_KEY) {
+    return NextResponse.json(
+      {
+        ok: false,
+        error: "FAL_KEY is missing",
+        message: "Add FAL_KEY to run live generations with fal.ai.",
+      },
+      { status: 500 },
+    );
+  }
+
+  try {
+    const result = await runGeneration({
+      preset,
+      category,
+      format,
+      productName,
+      sourceImageUrl,
+      variant,
+    });
+
+    return NextResponse.json({
+      ok: true,
+      message: `${result.provider} generation completed`,
+      data: {
+        generationId: crypto.randomUUID(),
+        preset,
+        category,
+        format,
+        productName,
+        sourceImageUrl: sourceImageUrl ?? null,
+        status: result.status,
+        provider: result.provider,
+        model: result.model,
+        variant: result.variant,
+        variantLabel: result.variantLabel,
+        prompt: result.prompt,
+        previewUrls: result.previewUrls,
+      },
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unknown provider error";
+
+    return NextResponse.json(
+      {
+        ok: false,
+        error: "IMAGE_GENERATION_FAILED",
+        message,
+      },
+      { status: 500 },
+    );
+  }
+}
