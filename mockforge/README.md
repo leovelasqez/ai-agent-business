@@ -22,11 +22,23 @@ MockForge genera mockups ecommerce a partir de una sola foto de producto.
 ## Configuración
 Crea `mockforge/.env.local` a partir de `.env.example`.
 
+Variables mínimas para correr el MVP actual:
+
 ```bash
 IMAGE_PROVIDER=fal
 FAL_KEY=...
-FAL_MODEL=fal-ai/flux-kontext/dev
 NEXT_PUBLIC_APP_URL=http://localhost:3000
+```
+
+Opcionalmente puedes fijar modelos específicos:
+
+```bash
+FAL_MODEL=fal-ai/flux-kontext/dev
+FAL_MODEL_A=fal-ai/flux-kontext/dev
+FAL_MODEL_B=fal-ai/flux-pro/kontext
+FAL_MODEL_C=fal-ai/gpt-image-1/edit-image
+REPLICATE_API_TOKEN=...
+REPLICATE_MODEL=black-forest-labs/flux-kontext-dev
 ```
 
 Si pruebas desde un VPS o un dominio, cambia `NEXT_PUBLIC_APP_URL` por una URL pública real.

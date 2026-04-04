@@ -35,14 +35,15 @@ npm run dev
 ```
 
 ## Variables de entorno importantes
-Dentro de `mockforge/.env.local`:
+Dentro de `mockforge/.env.local` las mínimas para el MVP son:
 
 ```bash
 IMAGE_PROVIDER=fal
 FAL_KEY=...
-FAL_MODEL=fal-ai/flux-kontext/dev
 NEXT_PUBLIC_APP_URL=http://localhost:3000
 ```
+
+Los modelos y proveedores alternos quedan como configuración opcional en `mockforge/.env.example`.
 
 ## Scripts útiles
 ```bash
