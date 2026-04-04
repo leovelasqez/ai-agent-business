@@ -1,19 +1,31 @@
 # Backlog
 
-## Idea activa
-- mockups visuales para ecommerce
+## Producto activo
+- MockForge
 
-## Variantes por explorar después
+## Tareas próximas
+- deploy estable en VPS
+- dominio/subdominio para la app
+- checkout real
+- persistencia mínima de generaciones
+- storage externo cuando deje de ser suficiente el local
+- analítica real de uso y conversión
+
+## Posibles mejoras de producto
+- más presets visuales
+- variantes A/B/C más visibles en UI
+- mejor onboarding para subir imágenes correctas
+- plantillas por nicho vertical
+- flujo para descargar HD tras pago
+
+## Líneas futuras para explorar
 - mockups para skincare
-- mockups para velas
 - mockups para suplementos
+- mockups para velas
 - mockups para cosméticos
 - mockups para botellas y empaques simples
 
-## Tareas futuras
-- definir stack recomendado para MVP
-- elegir proveedor de generación de imágenes
-- diseñar prompts base por preset
-- diseñar funnel inicial
-- definir eventos de analítica
-- bosquejar pipeline de contenido automatizado
+## Pendientes estratégicos
+- validar que la calidad visual realmente justifique cobro
+- decidir si el canal principal de adquisición será TikTok, UGC o outreach frío
+- definir oferta inicial y pricing sin ponerse creativos demasiado temprano

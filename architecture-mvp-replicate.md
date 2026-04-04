@@ -1,33 +1,39 @@
-# Arquitectura Técnica — MVP Mockups Ecommerce con Replicate
+# Arquitectura Técnica — MockForge MVP
 
-## Decisión
-Proveedor inicial de generación: Replicate.
+## Estado de esta arquitectura
+Documento actualizado para reflejar el estado real del proyecto.
 
-## Razón
-Se prioriza flexibilidad para explorar distintos pipelines de generación antes de casarnos con un proveedor final.
+**Resumen corto:**
+- provider activo: **fal.ai**
+- Replicate quedó como opción secundaria para comparación o fallback futuro
+- almacenamiento actual: **local**
+- persistencia de generaciones: **todavía no**
+- checkout: **placeholder**
 
 ---
 
 ## Objetivo técnico
-Construir un MVP web simple que permita:
+Construir una app web simple que permita:
 1. subir una imagen de producto,
 2. seleccionar un preset visual,
-3. generar mockups,
+3. generar mockups reales,
 4. mostrar previews,
-5. cobrar para desbloquear descarga HD.
+5. dejar la base lista para cobrar más adelante.
 
 ---
 
 ## Frontend
 ### Stack
-- Next.js
-- Tailwind CSS
+- Next.js 16
+- React 19
+- Tailwind CSS 4
 
-### Pantallas mínimas
+### Pantallas actuales
 1. Landing
 2. Upload
 3. Results
-4. Checkout success
+4. Success
+5. Debug upload
 
 ---
 
@@ -35,73 +41,72 @@ Construir un MVP web simple que permita:
 ### Stack
 - Next.js route handlers
 
-### Endpoints mínimos
+### Endpoints actuales
 #### `POST /api/upload`
 - recibe imagen del producto
-- la guarda en storage
-- devuelve URL/id
+- la guarda en almacenamiento local
+- devuelve ruta pública
 
 #### `POST /api/generate`
-- recibe image URL, preset y metadata opcional
+- recibe imagen + preset + metadata
 - arma prompt
-- llama Replicate
-- guarda resultado
-- devuelve previews
+- llama al provider activo
+- devuelve previews reales
 
-#### `POST /api/checkout`
-- crea checkout en Stripe
-- asocia generación con compra
+#### `GET /api/provider/health`
+- confirma provider activo
+- indica si la key mínima está configurada
+
+#### `POST /api/debug/upload`
+- endpoint de diagnóstico para aislar fallos de upload
 
 #### `GET /api/result/:id`
-- devuelve resultados y estado
+- endpoint base para flujo de resultados
+
+#### `POST /api/checkout`
+- placeholder por ahora
 
 ---
 
 ## Storage
-### Recomendación
-- Supabase Storage
+### Estado actual
+- `public/uploads` para uploads y outputs locales
 
-Uso:
-- uploads
-- previews
-- resultados finales
+### Qué significa eso
+Sirve para validar el MVP, pero no es la solución final si el producto despega.
 
----
-
-## Base de datos
-### Recomendación
-- Supabase Postgres
-
-### Tabla `generations`
-- id
-- created_at
-- source_image_url
-- preset
-- prompt
-- status
-- preview_urls
-- final_urls
-- payment_status
-- session_id
-
-### Tabla `checkouts`
-- id
-- generation_id
-- stripe_session_id
-- amount
-- status
+### Evolución probable
+- storage externo
+- URLs persistentes
+- separación entre uploads originales y generaciones
 
 ---
 
-## Pipeline AI
+## Pipeline AI actual
 1. usuario sube imagen
-2. guardamos asset
-3. elige preset
+2. guardamos asset localmente
+3. selecciona preset/categoría/formato
 4. backend construye prompt
-5. enviamos a Replicate
-6. guardamos output
-7. mostramos previews
-8. desbloqueamos HD tras pago
+5. enviamos al provider activo
+6. guardamos previews localmente
+7. mostramos resultados en frontend
+
+---
+
+## Providers
+### Activo
+- fal.ai
+- modelo base actual: `fal-ai/flux-kontext/dev`
+
+### Variantes contempladas
+- `FAL_MODEL_A`
+- `FAL_MODEL_B`
+- `FAL_MODEL_C`
+
+### Secundario / opcional
+- Replicate
+
+Replicate ya no define la arquitectura principal. Si se usa, será para comparar calidad, costo o estabilidad.
 
 ---
 
@@ -117,89 +122,53 @@ Uso:
 - look realista
 
 ### `ad_creative`
-- composición más impactante
+- composición más agresiva visualmente
 - estética publicitaria
 - producto reconocible
 
 ---
 
 ## Prompt builder
-Se usarán prompts estructurados por preset en vez de prompts libres del usuario.
+Se usan prompts estructurados por preset en vez de prompts libres del usuario.
 
 Objetivos:
 - preservar forma y color del producto
 - reducir deformaciones
 - mantener utilidad comercial
+- facilitar consistencia entre generaciones
 
 ---
 
-## UX mínima
-### Landing
-CTA: "Generate your first mockup free"
-
-### Upload
-- imagen
-- categoría
-- preset
-- formato
-
-### Generating
-- estado de carga
-
-### Results
-- grid de previews
-- botón para desbloquear HD
-
-### Checkout
-- Stripe checkout
-
-### Download
-- acceso a archivos HD
+## Lo que falta para salir del modo MVP de garaje
+- checkout real
+- persistencia en base de datos
+- storage externo
+- auth si se vuelve pública
+- cola de jobs si la generación empieza a tardar más
+- observabilidad decente
+- deploy estable con proxy + HTTPS
 
 ---
 
-## Analytics mínimos
-- landing_view
-- upload_started
-- upload_completed
-- preset_selected
-- generation_started
-- generation_completed
-- results_viewed
-- checkout_started
-- purchase_completed
-- download_completed
-
----
-
-## Decisiones del MVP
-### Auth
-No obligatorio al inicio.
-
-### Ejecución
-Generación asíncrona corta con polling simple.
-
-### Input esperado
-Se pedirá foto simple del producto, idealmente con fondo limpio.
-
----
-
-## Milestones
-### Milestone 1
+## Milestones actualizados
+### Milestone 1 — base funcional
 - landing
 - upload
-- storage
-- generate endpoint mockeado
-- estructura UI
+- flujo de results
+- provider integrado
 
-### Milestone 2
-- integración real con Replicate
-- un preset funcional
+### Milestone 2 — generación real
+- fal.ai activo
+- previews reales end-to-end
+- uploader endurecido
 
-### Milestone 3
-- tres presets
-- previews persistidas
+### Milestone 3 — producto vendible
+- checkout real
+- persistencia
+- deploy serio
+- UX más pulida
 
-### Milestone 4
-- Stripe
-- unlock HD
+### Milestone 4 — validación comercial
+- tráfico real
+- testing de hooks/ofertas
+- primera señal de conversión
