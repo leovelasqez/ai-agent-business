@@ -3,6 +3,13 @@ node_modules/
 dist/
 .env
 .env.*
+**/.env
+**/.env.*
+**/*.swp
+**/*.swo
 uploads/
+public/uploads/
 *.log
 .DS_Store
+.vercel/
+coverage/

@@ -1,35 +1,66 @@
 # AI Agent Business
 
-## Objetivo
-Explorar y construir un flujo tipo "app + marketing automatizado + monetización" usando al asistente como agente operativo.
+Proyecto base para construir productos operados por IA con foco en velocidad de ejecución, marketing automatizable y monetización.
 
-## Estado
-- Estado: `activo`
-- Prioridad: `1`
+## Proyecto activo: MockForge
 
-## Resumen rápido
-El primer producto elegido es **MockForge**, un MVP para generar mockups visuales de ecommerce a partir de una sola foto de producto.
+**MockForge** es el primer MVP del portfolio: una app para generar mockups visuales de ecommerce a partir de una foto de producto.
 
-Ya se hizo:
-- definición del MVP
-- arquitectura técnica
-- scaffold de Next.js
-- integración de provider abstracto
-- fal.ai como provider activo
-- upload local
-- results conectado a generación
+### Qué ya existe
+- app en Next.js
+- flujo de upload
+- generación real conectada a fal.ai
+- resultados renderizados en frontend
+- capa abstracta de providers para cambiar motor sin romper la app
+- documentación base de producto y arquitectura
 
-El foco actual no es estrategia, sino **cerrar el primer flujo real end-to-end**.
+### Estado actual
+El MVP ya cruza casi todo el camino end-to-end. El cuello de botella principal detectado fue el comportamiento del file picker en navegadores embebidos tipo Telegram webview.
 
-## Próximo hito
-Completar la primera generación real de MockForge con una imagen subida desde navegador.
+## Estructura del repo
+- `mockforge/` → app principal
+- `mvp-mockups-ecommerce.md` → definición del MVP
+- `architecture-mvp-replicate.md` → arquitectura técnica inicial
+- `status.md` → estado resumido
+- `decisions.md` → decisiones tomadas
+- `next-steps.md` → siguientes pasos operativos
+- `backlog.md` → pendientes
 
-## Siguiente acción concreta
-Retomar el debug del uploader y validar el flujo real hasta ver previews generadas o error útil del provider.
+## Cómo correr MockForge
+```bash
+cd mockforge
+npm install
+cp .env.example .env.local
+npm run dev
+```
 
-## Documentos clave
-- `mvp-mockups-ecommerce.md`
-- `architecture-mvp-replicate.md`
-- `status.md`
-- `decisions.md`
-- `next-steps.md`
+## Variables de entorno importantes
+Dentro de `mockforge/.env.local`:
+
+```bash
+IMAGE_PROVIDER=fal
+FAL_KEY=...
+FAL_MODEL=fal-ai/flux-kontext/dev
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+```
+
+## Scripts útiles
+```bash
+cd mockforge
+npm run dev
+npm run build
+npm run start
+npm run lint
+npm run test:file-storage
+```
+
+## Seguridad básica
+- no subir `.env*`
+- no subir llaves, tokens o credenciales
+- no commitear uploads generados localmente
+
+## Siguiente jugada recomendada
+1. cerrar UX de upload fuera de webviews rotas
+2. conectar checkout real
+3. preparar deploy estable
+4. empezar validación con usuarios
