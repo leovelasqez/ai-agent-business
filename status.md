@@ -20,7 +20,7 @@
 
 ## Qué está en progreso
 - [ ] Cerrar deploy estable de MockForge en el VPS
-- [ ] Pulir documentación final del proyecto
+- [x] Se dejó el repo listo para colaboración externa y Claude Code
 - [ ] Decidir si Replicate sigue como fallback real o se elimina
 
 ## Qué sigue bloqueando

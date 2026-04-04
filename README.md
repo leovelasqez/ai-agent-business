@@ -20,11 +20,14 @@ El MVP ya cruza casi todo el camino end-to-end. El cuello de botella principal d
 ## Estructura del repo
 - `mockforge/` → app principal
 - `mvp-mockups-ecommerce.md` → definición del MVP
-- `architecture-mockforge-mvp.md` → arquitectura técnica inicial
+- `architecture-mockforge-mvp.md` → arquitectura técnica
 - `status.md` → estado resumido
 - `decisions.md` → decisiones tomadas
 - `next-steps.md` → siguientes pasos operativos
 - `backlog.md` → pendientes
+- `DEPLOY.md` → guía base de deploy
+- `CONTRIBUTING.md` → reglas mínimas para colaborar
+- `CLAUDE-CODE.md` → handoff rápido para otro agente
 
 ## Cómo correr MockForge
 ```bash
@@ -60,8 +63,15 @@ npm run test:file-storage
 - no subir llaves, tokens o credenciales
 - no commitear uploads generados localmente
 
+## Si llega otro agente
+El punto de entrada recomendado es:
+1. `CONTRIBUTING.md`
+2. `CLAUDE-CODE.md`
+3. `status.md`
+4. `next-steps.md`
+
 ## Siguiente jugada recomendada
-1. cerrar UX de upload fuera de webviews rotas
-2. conectar checkout real
-3. preparar deploy estable
+1. preparar deploy estable
+2. cerrar UX de upload fuera de webviews rotas
+3. conectar checkout real
 4. empezar validación con usuarios
