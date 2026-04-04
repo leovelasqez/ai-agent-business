@@ -20,7 +20,7 @@ El MVP ya cruza casi todo el camino end-to-end. El cuello de botella principal d
 ## Estructura del repo
 - `mockforge/` → app principal
 - `mvp-mockups-ecommerce.md` → definición del MVP
-- `architecture-mvp-replicate.md` → arquitectura técnica inicial
+- `architecture-mockforge-mvp.md` → arquitectura técnica inicial
 - `status.md` → estado resumido
 - `decisions.md` → decisiones tomadas
 - `next-steps.md` → siguientes pasos operativos
