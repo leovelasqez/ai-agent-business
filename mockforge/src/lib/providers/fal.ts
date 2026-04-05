@@ -38,7 +38,13 @@ async function resolveFalImageUrl(sourceImageUrl?: string) {
 
   if (sourceImageUrl.startsWith("/uploads/")) {
     const fileName = sourceImageUrl.replace(/^\/uploads\//, "");
-    const absolutePath = path.join(process.cwd(), "public", "uploads", fileName);
+    const uploadsDir = path.join(process.cwd(), "public", "uploads");
+    const absolutePath = path.join(uploadsDir, fileName);
+
+    if (!absolutePath.startsWith(uploadsDir + path.sep) && absolutePath !== uploadsDir) {
+      throw new Error("Invalid image path: path traversal detected");
+    }
+
     const buffer = await readFile(absolutePath);
     const extension = path.extname(fileName).toLowerCase();
     const mimeType = extension === ".png" ? "image/png" : extension === ".webp" ? "image/webp" : "image/jpeg";

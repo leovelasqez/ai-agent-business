@@ -16,12 +16,18 @@ const presetInstructions: Record<PresetId, string> = {
     "Replace ONLY the background with a bold advertising-style scene: vibrant solid or gradient color, dramatic lighting, high visual contrast. You may add a short advertising tagline in Spanish (2 to 4 words maximum, bold typography) placed in empty space away from the product. The product bottle must remain completely untouched.",
 };
 
+function sanitizeTextInput(value: string, maxLength = 100): string {
+  return value.replace(/[^a-zA-Z0-9 ,.'()\-áéíóúüñÁÉÍÓÚÜÑ]/g, "").slice(0, maxLength).trim();
+}
+
 export function buildPrompt({ preset, category, productName, format }: BuildPromptInput) {
   const selectedPreset = getPresetById(preset);
+  const safeProductName = productName ? sanitizeTextInput(productName) : null;
+  const safeCategory = category ? sanitizeTextInput(category) : null;
 
   return [
-    productName ? `Product: ${productName}.` : null,
-    category ? `Category: ${category}.` : null,
+    safeProductName ? `Product: ${safeProductName}.` : null,
+    safeCategory ? `Category: ${safeCategory}.` : null,
     format ? `Output format: ${format}.` : null,
     selectedPreset ? `Style: ${selectedPreset.name}.` : null,
     presetInstructions[preset],
