@@ -97,6 +97,15 @@ export const presetModelConfig: Record<PresetId, Record<"a" | "b", ImageModelCon
 export function mapFormatToResolutionMode(format?: string) {
   if (!format) return "match_input";
   const normalized = format.toLowerCase();
+  if (normalized.includes("9:16") || normalized.includes("story")) return "9:16";
   if (normalized.includes("4:5")) return "4:5";
   return "1:1";
+}
+
+export function mapFormatToGptImageSize(format?: string): string {
+  if (!format) return "1024x1024";
+  const normalized = format.toLowerCase();
+  if (normalized.includes("9:16") || normalized.includes("story")) return "1024x1536";
+  if (normalized.includes("4:5")) return "1024x1536";
+  return "1024x1024";
 }

@@ -231,18 +231,29 @@ export function ResultsView({
                     key={`${url}-${index}`}
                     className="group overflow-hidden rounded-[1.5rem] border border-white/10 bg-black/20"
                   >
-                    <div className="relative aspect-[4/5] overflow-hidden">
+                    <div className="relative aspect-square overflow-hidden">
                       <Image
                         src={url}
                         alt={`Generated mockup ${index + 1}`}
                         fill
-                        className="object-cover transition duration-500 group-hover:scale-[1.03]"
+                        className="object-contain transition duration-500 group-hover:scale-[1.03]"
                         unoptimized
                       />
-                      <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent px-4 py-4">
+                    </div>
+                    <div className="flex items-center justify-between px-4 py-3">
+                      <div>
                         <div className="text-sm font-medium text-white">Mockup {index + 1}</div>
-                        <div className="mt-1 text-xs text-white/70">Preview lista para revisar o compartir</div>
+                        <div className="mt-0.5 text-xs text-white/50">Preview lista para revisar o compartir</div>
                       </div>
+                      <a
+                        href={url}
+                        target="_blank"
+                        rel="noreferrer"
+                        download
+                        className="rounded-xl border border-white/15 px-3 py-1.5 text-xs font-medium text-white transition hover:border-white/30 hover:bg-white/10"
+                      >
+                        Descargar
+                      </a>
                     </div>
                   </div>
                 ))}
