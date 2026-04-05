@@ -7,7 +7,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test:file-storage": "node --import tsx src/lib/file-storage.test.ts"
+    "test:file-storage": "node --import tsx src/lib/file-storage.test.ts",
+    "test:model-config": "node --import tsx src/lib/model-config.test.ts",
+    "test": "npm run test:file-storage && npm run test:model-config"
   },
   "dependencies": {
     "@fal-ai/client": "^1.9.5",

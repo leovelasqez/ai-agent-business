@@ -3,7 +3,7 @@ import path from "node:path";
 import { fal } from "@fal-ai/client";
 import { downloadImageToLocal, saveBase64ImageToLocal } from "@/lib/file-storage";
 import { buildPrompt } from "@/lib/prompt-builder";
-import { mapFormatToResolutionMode, presetModelConfig } from "@/lib/model-config";
+import { mapFormatToGptImageSize, mapFormatToResolutionMode, presetModelConfig } from "@/lib/model-config";
 import type { RunGenerationInput, RunGenerationResult } from "@/lib/image-provider";
 
 interface FalImageOutput {
@@ -38,7 +38,13 @@ async function resolveFalImageUrl(sourceImageUrl?: string) {
 
   if (sourceImageUrl.startsWith("/uploads/")) {
     const fileName = sourceImageUrl.replace(/^\/uploads\//, "");
-    const absolutePath = path.join(process.cwd(), "public", "uploads", fileName);
+    const uploadsDir = path.join(process.cwd(), "public", "uploads");
+    const absolutePath = path.join(uploadsDir, fileName);
+
+    if (!absolutePath.startsWith(uploadsDir + path.sep) && absolutePath !== uploadsDir) {
+      throw new Error("Invalid image path: path traversal detected");
+    }
+
     const buffer = await readFile(absolutePath);
     const extension = path.extname(fileName).toLowerCase();
     const mimeType = extension === ".png" ? "image/png" : extension === ".webp" ? "image/webp" : "image/jpeg";
@@ -74,6 +80,7 @@ export async function runFalGeneration(input: RunGenerationInput): Promise<RunGe
         defaults: {
           output_format: "jpeg",
           num_images: 1,
+          quality: "high",
         },
       }
     : presetModelConfig[input.preset][variant];
@@ -95,6 +102,8 @@ export async function runFalGeneration(input: RunGenerationInput): Promise<RunGe
               input_fidelity: "high",
               output_format: String(config.defaults.output_format),
               num_images: Number(config.defaults.num_images),
+              quality: String(config.defaults.quality),
+              image_size: mapFormatToGptImageSize(input.format),
             }
           : {
               prompt,

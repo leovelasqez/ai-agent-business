@@ -179,6 +179,7 @@ export function MockupUploadForm({
             >
               <option value="1:1 square">1:1 Cuadrado</option>
               <option value="4:5 portrait">4:5 Vertical</option>
+              <option value="9:16 story">9:16 Story (Instagram)</option>
             </select>
           </div>
 
