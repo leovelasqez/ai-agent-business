@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { SiteHeader } from "@/components/site-header";
 import { MockupUploadForm } from "@/components/mockup-upload-form";
+import { WebviewWarning } from "@/components/webview-warning";
 import { getPresetById, type PresetId } from "@/lib/presets";
 
 interface UploadPageProps {
@@ -43,6 +44,8 @@ export default async function UploadPage({ searchParams }: UploadPageProps) {
             Carga una imagen de tu producto, elige un preset y genera mockups listos para probar en tu tienda, anuncios o contenido.
           </p>
         </div>
+
+        <WebviewWarning />
 
         <MockupUploadForm
           initialSourceImageUrl={sourceImageUrl}
