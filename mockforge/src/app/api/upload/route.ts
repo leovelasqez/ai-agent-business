@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { saveUploadToLocal } from "@/lib/file-storage";
+import { saveInputUpload } from "@/lib/storage-provider";
 
 const ALLOWED_MIME_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 const MIN_FILE_SIZE_BYTES = 1024;
@@ -42,7 +42,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const saved = await saveUploadToLocal(file);
+    const saved = await saveInputUpload(file);
 
     return NextResponse.json({
       ok: true,

@@ -9,10 +9,12 @@
     "lint": "eslint",
     "test:file-storage": "node --import tsx src/lib/file-storage.test.ts",
     "test:model-config": "node --import tsx src/lib/model-config.test.ts",
-    "test": "npm run test:file-storage && npm run test:model-config"
+    "test:storage-provider": "node --import tsx src/lib/storage-provider.test.ts",
+    "test": "npm run test:file-storage && npm run test:model-config && npm run test:storage-provider"
   },
   "dependencies": {
     "@fal-ai/client": "^1.9.5",
+    "@supabase/supabase-js": "^2.101.1",
     "next": "16.2.2",
     "react": "19.2.4",
     "react-dom": "19.2.4",

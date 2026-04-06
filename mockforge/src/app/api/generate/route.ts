@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { runGeneration } from "@/lib/image-provider";
+import { insertGeneration } from "@/lib/db/generations";
 import type { PresetId } from "@/lib/presets";
 
 export async function POST(request: Request) {
@@ -34,11 +35,27 @@ export async function POST(request: Request) {
       variant,
     });
 
+    // Record to DB if Supabase is configured (non-fatal if it fails)
+    const generationId =
+      (await insertGeneration({
+        preset,
+        category,
+        format,
+        product_name: productName,
+        variant: result.variant,
+        model: result.model,
+        prompt: result.prompt,
+        source_image_url: sourceImageUrl ?? undefined,
+        preview_urls: result.previewUrls,
+        provider: result.provider,
+        status: result.status,
+      })) ?? crypto.randomUUID();
+
     return NextResponse.json({
       ok: true,
       message: `${result.provider} generation completed`,
       data: {
-        generationId: crypto.randomUUID(),
+        generationId,
         preset,
         category,
         format,

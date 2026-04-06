@@ -1,7 +1,7 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { fal } from "@fal-ai/client";
-import { downloadImageToLocal, saveBase64ImageToLocal } from "@/lib/file-storage";
+import { downloadAndSaveOutput, saveOutputBase64 } from "@/lib/storage-provider";
 import { buildPrompt } from "@/lib/prompt-builder";
 import { DEFAULT_MODEL_D, mapFormatToGptImageSize, mapFormatToNanoBananaAspectRatio, mapFormatToResolutionMode, presetModelConfig } from "@/lib/model-config";
 import type { RunGenerationInput, RunGenerationResult } from "@/lib/image-provider";
@@ -147,12 +147,12 @@ export async function runFalGeneration(input: RunGenerationInput): Promise<RunGe
   const previewUrls = await Promise.all(
     (data.images || []).map(async (image, index) => {
       if (image.url) {
-        const saved = await downloadImageToLocal(image.url, `generated-${variant}-${index + 1}`);
+        const saved = await downloadAndSaveOutput(image.url, `generated-${variant}-${index + 1}`);
         return saved.publicPath;
       }
 
       if (image.b64_json) {
-        const saved = await saveBase64ImageToLocal(image.b64_json, `generated-${variant}-${index + 1}`);
+        const saved = await saveOutputBase64(image.b64_json, `generated-${variant}-${index + 1}`);
         return saved.publicPath;
       }
 
