@@ -1,6 +1,6 @@
 import type { PresetId } from "@/lib/presets";
 
-export type GenerationVariant = "a" | "b" | "c";
+export type GenerationVariant = "a" | "b" | "c" | "d";
 
 export interface RunGenerationInput {
   preset: PresetId;

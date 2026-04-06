@@ -192,7 +192,7 @@ export function MockupUploadForm({
 
           <div>
             <label className="mb-2 block text-sm text-neutral-300">Modo de modelo</label>
-            <div className="grid gap-3 sm:grid-cols-3">
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
               <button
                 type="button"
                 onClick={() => setVariant("a")}
@@ -228,6 +228,18 @@ export function MockupUploadForm({
               >
                 <div className="font-medium">C · GPT Image 1</div>
                 <div className="mt-1 text-xs opacity-80">Vía fal, orientado a editar sin destruir el producto.</div>
+              </button>
+              <button
+                type="button"
+                onClick={() => setVariant("d")}
+                className={`rounded-2xl border px-4 py-3 text-left text-sm transition ${
+                  variant === "d"
+                    ? "border-white bg-white text-black"
+                    : "border-white/10 bg-black/20 text-neutral-300 hover:border-white/20"
+                }`}
+              >
+                <div className="font-medium">D · Nano Banana 2</div>
+                <div className="mt-1 text-xs opacity-80">Edición de imagen con alta fidelidad al producto.</div>
               </button>
             </div>
           </div>

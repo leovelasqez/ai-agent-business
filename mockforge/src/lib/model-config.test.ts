@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mapFormatToResolutionMode, mapFormatToGptImageSize } from "@/lib/model-config";
+import { mapFormatToResolutionMode, mapFormatToGptImageSize, mapFormatToNanoBananaAspectRatio, DEFAULT_MODEL_D } from "@/lib/model-config";
 
 function run() {
   // mapFormatToResolutionMode
@@ -17,6 +17,18 @@ function run() {
   assert.equal(mapFormatToGptImageSize("4:5 portrait"), "1024x1536");
   assert.equal(mapFormatToGptImageSize("1:1 square"), "1024x1024");
   assert.equal(mapFormatToGptImageSize(undefined), "1024x1024");
+
+  // mapFormatToNanoBananaAspectRatio
+  assert.equal(mapFormatToNanoBananaAspectRatio("9:16 story"), "9:16");
+  assert.equal(mapFormatToNanoBananaAspectRatio("9:16"), "9:16");
+  assert.equal(mapFormatToNanoBananaAspectRatio("story"), "9:16");
+  assert.equal(mapFormatToNanoBananaAspectRatio("4:5 portrait"), "4:5");
+  assert.equal(mapFormatToNanoBananaAspectRatio("4:5"), "4:5");
+  assert.equal(mapFormatToNanoBananaAspectRatio("1:1 square"), "1:1");
+  assert.equal(mapFormatToNanoBananaAspectRatio(undefined), "1:1");
+
+  // DEFAULT_MODEL_D env fallback
+  assert.equal(DEFAULT_MODEL_D, process.env.FAL_MODEL_D || "fal-ai/nano-banana-2/edit");
 
   console.log("model-config test passed");
 }

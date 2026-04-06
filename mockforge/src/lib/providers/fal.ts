@@ -3,7 +3,7 @@ import path from "node:path";
 import { fal } from "@fal-ai/client";
 import { downloadImageToLocal, saveBase64ImageToLocal } from "@/lib/file-storage";
 import { buildPrompt } from "@/lib/prompt-builder";
-import { mapFormatToGptImageSize, mapFormatToResolutionMode, presetModelConfig } from "@/lib/model-config";
+import { DEFAULT_MODEL_D, mapFormatToGptImageSize, mapFormatToNanoBananaAspectRatio, mapFormatToResolutionMode, presetModelConfig } from "@/lib/model-config";
 import type { RunGenerationInput, RunGenerationResult } from "@/lib/image-provider";
 
 interface FalImageOutput {
@@ -73,17 +73,27 @@ export async function runFalGeneration(input: RunGenerationInput): Promise<RunGe
     format: input.format,
   });
 
-  const variant = input.variant === "c" ? "c" : input.variant === "b" ? "b" : "a";
-  const config = variant === "c"
-    ? {
-        model: process.env.FAL_MODEL_C || "fal-ai/gpt-image-1/edit-image",
-        defaults: {
-          output_format: "jpeg",
-          num_images: 1,
-          quality: "high",
-        },
-      }
-    : presetModelConfig[input.preset][variant];
+  const variant = input.variant === "d" ? "d" : input.variant === "c" ? "c" : input.variant === "b" ? "b" : "a";
+  const config =
+    variant === "d"
+      ? {
+          model: DEFAULT_MODEL_D,
+          defaults: {
+            output_format: "jpeg",
+            num_images: 1,
+            resolution: "1K",
+          },
+        }
+      : variant === "c"
+        ? {
+            model: process.env.FAL_MODEL_C || "fal-ai/gpt-image-1/edit-image",
+            defaults: {
+              output_format: "jpeg",
+              num_images: 1,
+              quality: "high",
+            },
+          }
+        : presetModelConfig[input.preset][variant];
   const resolvedImageUrl = await resolveFalImageUrl(input.sourceImageUrl);
 
   if (!resolvedImageUrl) {
@@ -95,27 +105,36 @@ export async function runFalGeneration(input: RunGenerationInput): Promise<RunGe
   try {
     result = await fal.subscribe(config.model, {
       input:
-        variant === "c"
+        variant === "d"
           ? {
-              prompt,
-              image_urls: [resolvedImageUrl],
-              input_fidelity: "high",
-              output_format: String(config.defaults.output_format),
-              num_images: Number(config.defaults.num_images),
-              quality: String(config.defaults.quality),
-              image_size: mapFormatToGptImageSize(input.format),
-            }
-          : {
               prompt,
               image_url: resolvedImageUrl,
               output_format: String(config.defaults.output_format),
-              resolution_mode: mapFormatToResolutionMode(input.format) ?? String(config.defaults.resolution_mode),
-              guidance_scale: Number(config.defaults.guidance_scale),
-              num_inference_steps: Number(config.defaults.num_inference_steps),
               num_images: Number(config.defaults.num_images),
-              enable_safety_checker: Boolean(config.defaults.enable_safety_checker),
-              acceleration: String(config.defaults.acceleration),
-            },
+              aspect_ratio: mapFormatToNanoBananaAspectRatio(input.format),
+              resolution: String(config.defaults.resolution),
+            }
+          : variant === "c"
+            ? {
+                prompt,
+                image_urls: [resolvedImageUrl],
+                input_fidelity: "high",
+                output_format: String(config.defaults.output_format),
+                num_images: Number(config.defaults.num_images),
+                quality: String(config.defaults.quality),
+                image_size: mapFormatToGptImageSize(input.format),
+              }
+            : {
+                prompt,
+                image_url: resolvedImageUrl,
+                output_format: String(config.defaults.output_format),
+                resolution_mode: mapFormatToResolutionMode(input.format) ?? String(config.defaults.resolution_mode),
+                guidance_scale: Number(config.defaults.guidance_scale),
+                num_inference_steps: Number(config.defaults.num_inference_steps),
+                num_images: Number(config.defaults.num_images),
+                enable_safety_checker: Boolean(config.defaults.enable_safety_checker),
+                acceleration: String(config.defaults.acceleration),
+              },
       logs: true,
     });
   } catch (error) {
@@ -158,10 +177,12 @@ export async function runFalGeneration(input: RunGenerationInput): Promise<RunGe
     model: config.model,
     variant,
     variantLabel:
-      variant === "c"
-        ? "C · GPT Image 1 via fal"
-        : variant === "b"
-          ? "B · FLUX Kontext Pro"
-          : "A · FLUX Kontext Dev",
+      variant === "d"
+        ? "D · Nano Banana 2"
+        : variant === "c"
+          ? "C · GPT Image 1 via fal"
+          : variant === "b"
+            ? "B · FLUX Kontext Pro"
+            : "A · FLUX Kontext Dev",
   };
 }
