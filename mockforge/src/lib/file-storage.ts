@@ -22,7 +22,7 @@ export async function saveBufferToLocal(buffer: Buffer, fileName: string) {
   return {
     fileName: safeName,
     absolutePath,
-    publicPath: `/uploads/${safeName}`,
+    publicPath: `/api/uploads/${safeName}`,
   };
 }
 

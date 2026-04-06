@@ -8,7 +8,7 @@ async function run() {
   const result = await saveUploadToLocal(file);
 
   assert.ok(result.fileName.includes("test-image.png"));
-  assert.ok(result.publicPath.startsWith("/uploads/"));
+  assert.ok(result.publicPath.startsWith("/api/uploads/"));
   assert.ok(existsSync(result.absolutePath));
 
   await unlink(result.absolutePath);

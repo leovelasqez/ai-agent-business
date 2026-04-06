@@ -36,8 +36,8 @@ async function resolveFalImageUrl(sourceImageUrl?: string) {
     return sourceImageUrl;
   }
 
-  if (sourceImageUrl.startsWith("/uploads/")) {
-    const fileName = sourceImageUrl.replace(/^\/uploads\//, "");
+  if (sourceImageUrl.startsWith("/api/uploads/")) {
+    const fileName = sourceImageUrl.replace(/^\/api\/uploads\//, "");
     const uploadsDir = path.join(process.cwd(), "public", "uploads");
     const absolutePath = path.join(uploadsDir, fileName);
 

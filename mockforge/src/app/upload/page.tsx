@@ -17,7 +17,7 @@ interface UploadPageProps {
 
 export default async function UploadPage({ searchParams }: UploadPageProps) {
   const params = await searchParams;
-  const sourceImageUrl = params.file ? `/uploads/${params.file}` : undefined;
+  const sourceImageUrl = params.file ? `/api/uploads/${params.file}` : undefined;
   const preset = getPresetById(params.preset ?? "")?.id ?? ("clean_studio" as PresetId);
   const category = params.category ?? "";
   const format = params.format ?? "1:1 square";
