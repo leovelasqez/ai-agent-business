@@ -37,8 +37,11 @@ export function MockupUploadForm({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const effectiveSourceImageUrl = selectedSourceImageUrl ?? initialSourceImageUrl ?? null;
-  const canSubmit = useMemo(() => !isSubmitting && !isUploadingFile, [isSubmitting, isUploadingFile]);
+  const effectiveSourceImageUrl = selectedSourceImageUrl || initialSourceImageUrl || null;
+  const canSubmit = useMemo(
+    () => !isSubmitting && !isUploadingFile && Boolean(effectiveSourceImageUrl),
+    [effectiveSourceImageUrl, isSubmitting, isUploadingFile],
+  );
 
   const uploadFile = useCallback(async (file: File) => {
     setSelectedFileName(file.name);
@@ -93,12 +96,16 @@ export function MockupUploadForm({
         );
       }
 
+      if (!nextSourceImageUrl || !nextSourceImageUrl.trim()) {
+        throw new Error("La imagen del producto no quedó lista para generar. Sube la imagen otra vez y espera a que termine el upload.");
+      }
+
       const params = new URLSearchParams({
         preset,
         category: category || "unspecified",
         format,
         productName: productName || "Untitled product",
-        sourceImageUrl: nextSourceImageUrl,
+        sourceImageUrl: nextSourceImageUrl.trim(),
         variant,
       });
 
@@ -251,6 +258,12 @@ export function MockupUploadForm({
           ))}
         </div>
 
+        {!effectiveSourceImageUrl ? (
+          <div className="mt-4 rounded-2xl border border-amber-500/20 bg-amber-500/10 p-4 text-sm text-amber-100">
+            Primero sube una imagen válida y espera a que quede confirmada antes de generar, sobre todo para la variante C.
+          </div>
+        ) : null}
+
         {error ? (
           <div className="mt-4 rounded-2xl border border-red-500/20 bg-red-500/10 p-4 text-sm text-red-200">
             {error}
@@ -263,7 +276,7 @@ export function MockupUploadForm({
           disabled={!canSubmit}
           className="mt-6 inline-flex w-full items-center justify-center rounded-2xl bg-white px-5 py-3 text-sm font-medium text-black transition hover:bg-neutral-200 disabled:cursor-not-allowed disabled:opacity-60"
         >
-          {isSubmitting ? "Preparando..." : "Generar mockups"}
+          {isSubmitting ? "Preparando..." : isUploadingFile ? "Subiendo imagen..." : "Generar mockups"}
         </button>
       </aside>
     </div>
