@@ -23,9 +23,9 @@ function Ensure-FirewallRule {
 function Get-TailscaleIPv4 {
     $candidates = Get-NetIPAddress -AddressFamily IPv4 -ErrorAction SilentlyContinue |
         Where-Object {
-            $_.IPAddress -like 100.* -and
-            $_.PrefixOrigin -ne WellKnown -and
-            $_.IPAddress -ne 100.100.100.100
+            $_.IPAddress -like '100.*' -and
+            $_.PrefixOrigin -ne 'WellKnown' -and
+            $_.IPAddress -ne '100.100.100.100'
         } |
         Sort-Object InterfaceMetric, SkipAsSource
 
@@ -56,14 +56,14 @@ if ($EnsureSshService) {
 }
 
 Write-Host "[3/8] Obteniendo IP de WSL..."
-$wslIp = (wsl -d $Distro -- bash -lc "hostname -I | cut -d  -f1" 2>$null).Trim()
+$wslIp = (wsl -d $Distro -- bash -lc "hostname -I | tr -s ' ' '\n' | head -n 1" 2>$null).Trim()
 if (-not $wslIp) {
-    throw "No pude obtener la IP de WSL para la distro ."
+    throw "No pude obtener la IP de WSL para la distro '$Distro'."
 }
 Write-Host "WSL IP: $wslIp"
 
 Write-Host "[4/8] Verificando que sshd escuche en WSL..."
-$sshListening = (wsl -d $Distro -- bash -lc "ss -tln | grep -q :  && echo ok" 2>$null).Trim()
+$sshListening = (wsl -d $Distro -- bash -lc "ss -tln | grep -q ':$Port ' && echo ok" 2>$null).Trim()
 if ($sshListening -ne "ok") {
     throw "sshd no está escuchando en WSL en el puerto $Port."
 }
