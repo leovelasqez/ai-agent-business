@@ -55,12 +55,26 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown provider error";
+    const details = message;
+    const friendlyMessage = message.includes("ENOENT")
+      ? "The source image was not found on the server. Upload it again and retry."
+      : message.includes("Load failed") || message.includes("Failed to fetch")
+        ? "The generation request could not reach the server cleanly. Retry in a normal browser like Chrome or Safari."
+        : "Image generation failed.";
+
+    console.error("[generate] generation failed", {
+      preset,
+      variant,
+      sourceImageUrl,
+      message,
+    });
 
     return NextResponse.json(
       {
         ok: false,
         error: "IMAGE_GENERATION_FAILED",
-        message,
+        message: friendlyMessage,
+        details,
       },
       { status: 500 },
     );

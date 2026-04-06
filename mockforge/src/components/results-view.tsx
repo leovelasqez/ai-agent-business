@@ -19,6 +19,7 @@ interface GenerateResponse {
   ok: boolean;
   message?: string;
   error?: string;
+  details?: string;
   data?: {
     generationId: string;
     previewUrls: string[];
@@ -72,7 +73,7 @@ export function ResultsView({
         const json = (await response.json()) as GenerateResponse;
 
         if (!response.ok || !json.ok || !json.data?.previewUrls?.length) {
-          throw new Error(json.message || "Generation failed");
+          throw new Error(json.details || json.message || "Generation failed");
         }
 
         if (isCancelled) return;
@@ -86,7 +87,16 @@ export function ResultsView({
       } catch (generationError) {
         if (isCancelled) return;
 
-        setError(generationError instanceof Error ? generationError.message : "Unknown generation error");
+        const rawMessage = generationError instanceof Error ? generationError.message : "Unknown generation error";
+        const friendlyMessage = rawMessage.includes("Load failed")
+          ? "La solicitud falló al cargar. Si abriste MockForge dentro de Telegram, prueba en Chrome o Safari y vuelve a intentar."
+          : rawMessage.includes("Failed to fetch")
+            ? "No se pudo conectar con el servidor. Revisa la conexión o intenta abrir MockForge fuera del navegador embebido."
+            : rawMessage.includes("ENOENT")
+              ? "La imagen fuente ya no existe en el servidor. Sube el producto otra vez e intenta de nuevo."
+              : rawMessage;
+
+        setError(friendlyMessage);
         setStatus("failed");
       }
     }
@@ -196,6 +206,9 @@ export function ResultsView({
         <section className="rounded-[2rem] border border-red-500/20 bg-red-500/10 p-6 text-red-100">
           <div className="text-lg font-medium">Error de generación</div>
           <p className="mt-2 text-sm text-red-200">{error}</p>
+          <p className="mt-2 text-xs text-red-300/90">
+            Consejo: si esto pasó dentro de Telegram o de otro navegador embebido, abre MockForge en Chrome o Safari.
+          </p>
         </section>
       ) : null}
 
