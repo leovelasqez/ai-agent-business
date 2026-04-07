@@ -234,7 +234,7 @@ export function MockupUploadForm({
             {compareMode ? (
               <div className="space-y-2">
                 <p className="text-xs text-neutral-500">Selecciona al menos 2 variantes para comparar en paralelo.</p>
-                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                <div className="grid gap-3 sm:grid-cols-2">
                   {VARIANTS.map((v) => (
                     <button
                       key={v.id}
