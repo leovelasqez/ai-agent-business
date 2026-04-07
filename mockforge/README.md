@@ -7,22 +7,29 @@ MockForge genera mockups ecommerce a partir de una sola foto de producto.
 - React 19
 - Tailwind CSS 4
 - fal.ai
+- Supabase (DB + Storage)
 
 ## Qué hace hoy
 - recibe una imagen del producto
-- la guarda localmente
+- la guarda en storage local o Supabase Storage
 - construye un prompt según preset/categoría/formato
 - llama al provider activo
+- guarda outputs generados
+- persiste metadata de la generación en Supabase si está configurado
 - muestra previews reales en `/results`
 
 ## Provider activo
 - `fal`
-- modelo actual: `fal-ai/flux-kontext/dev`
+- variantes disponibles:
+  - A: FLUX Kontext Dev
+  - B: FLUX Kontext Pro
+  - C: GPT Image 1 via fal
+  - D: Nano Banana 2
 
 ## Configuración
 Crea `mockforge/.env.local` a partir de `.env.example`.
 
-Variables mínimas para correr el MVP actual:
+### Variables mínimas
 
 ```bash
 IMAGE_PROVIDER=fal
@@ -30,7 +37,21 @@ FAL_KEY=...
 NEXT_PUBLIC_APP_URL=http://localhost:3000
 ```
 
-Opcionalmente puedes fijar modelos específicos:
+### Para activar Supabase de verdad
+
+```bash
+NEXT_PUBLIC_SUPABASE_URL=...
+NEXT_PUBLIC_SUPABASE_ANON_KEY=...
+SUPABASE_SERVICE_ROLE_KEY=...
+STORAGE_PROVIDER=supabase
+```
+
+Notas:
+- `SUPABASE_SERVICE_ROLE_KEY` es solo server-side
+- si `STORAGE_PROVIDER` no es `supabase`, o faltan vars, MockForge hace fallback a storage local
+- la persistencia en DB también es opcional, pero sin vars de Supabase no habrá historial real
+
+### Modelos opcionales
 
 ```bash
 FAL_MODEL=fal-ai/flux-kontext/dev
@@ -42,6 +63,18 @@ REPLICATE_MODEL=black-forest-labs/flux-kontext-dev
 ```
 
 Si pruebas desde un VPS o un dominio, cambia `NEXT_PUBLIC_APP_URL` por una URL pública real.
+
+## Supabase
+Aplicar migraciones:
+
+```bash
+supabase db push
+```
+
+Migraciones incluidas:
+- tabla `generations`
+- buckets `mockforge-inputs` y `mockforge-outputs`
+- policies públicas de lectura para ambos buckets
 
 ## Desarrollo local
 ```bash
@@ -59,33 +92,32 @@ curl http://127.0.0.1:3000/api/provider/health
 - UI: `/debug/upload`
 - endpoint: `POST /api/debug/upload`
 
+### Resultado por id
+- endpoint: `GET /api/result/:id`
+- usa Supabase cuando está configurado
+
 ## Scripts
 ```bash
 npm run dev
 npm run build
 npm run start
 npm run lint
-npm run test:file-storage
+npm test
 ```
 
 ## Estado actual
-La app ya funciona end-to-end cuando recibe una imagen válida. El principal problema detectado no fue backend sino algunos navegadores embebidos que rompen el file picker.
+La app funciona end-to-end con imagen válida. También maneja mejor el caso de navegadores embebidos como Telegram/Instagram, que suelen romper uploads o requests.
 
 ## Deploy
-### Opción rápida
-```bash
-npm run build
-npm run start
-```
-
 ### Recomendado para producción
-- correr con PM2 o systemd
-- exponer detrás de Nginx o Caddy
-- usar dominio + HTTPS
-- guardar `FAL_KEY` solo en variables de entorno del servidor
+- Vercel o servidor Node estable
+- dominio + HTTPS
+- `NEXT_PUBLIC_APP_URL` apuntando al dominio real
+- `FAL_KEY` y `SUPABASE_SERVICE_ROLE_KEY` solo en variables de entorno del servidor
+- `STORAGE_PROVIDER=supabase` para no depender del filesystem local
 
 ## Pendientes obvios
 - checkout real
-- persistencia/estado de generaciones
+- historial/listado de generaciones en UI
 - auth si se vuelve pública
 - cola de jobs si el tráfico sube

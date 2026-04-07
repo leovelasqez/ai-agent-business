@@ -7,6 +7,9 @@ export function SiteHeader() {
         MockForge
       </Link>
       <nav className="flex items-center gap-3">
+        <Link href="/history" className="text-sm text-neutral-400 transition hover:text-white">
+          History
+        </Link>
         <Link href="/upload" className="text-sm text-neutral-400 transition hover:text-white">
           Upload
         </Link>
