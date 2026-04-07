@@ -180,10 +180,6 @@ export function MockupUploadForm({
             </div>
           ) : null}
 
-          <div className="rounded-2xl border border-amber-500/20 bg-amber-500/10 p-4 text-sm text-amber-100">
-            Si el selector de archivos falla dentro de Telegram o de un navegador embebido, abre esta página en Chrome o Safari. Usa una foto real del producto: archivos vacíos, corruptos o demasiado pequeños se rechazan automáticamente.
-          </div>
-
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
               <label className="mb-2 block text-sm text-neutral-300">Nombre del producto</label>
