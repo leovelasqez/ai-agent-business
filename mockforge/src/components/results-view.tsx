@@ -12,7 +12,7 @@ interface ResultsViewProps {
   format: string;
   productName: string;
   sourceImageUrl?: string;
-  variant?: "a" | "b" | "c";
+  variant?: "a" | "b" | "c" | "d";
 }
 
 interface GenerateResponse {
@@ -27,7 +27,7 @@ interface GenerateResponse {
     provider?: string;
     model?: string;
     status?: GenerationStatus;
-    variant?: "a" | "b" | "c";
+    variant?: "a" | "b" | "c" | "d";
     variantLabel?: string;
   };
 }
@@ -43,9 +43,16 @@ export function ResultsView({
   const [status, setStatus] = useState<GenerationStatus>("processing");
   const [previewUrls, setPreviewUrls] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [variantLabel, setVariantLabel] = useState<string>(
-    variant === "c" ? "C · GPT Image 1 via fal" : variant === "b" ? "B · FLUX Kontext Pro" : "A · FLUX Kontext Dev",
-  );
+  const defaultVariantLabel =
+    variant === "d"
+      ? "D · Nano Banana 2"
+      : variant === "c"
+        ? "C · GPT Image 1 via fal"
+        : variant === "b"
+          ? "B · FLUX Kontext Pro"
+          : "A · FLUX Kontext Dev";
+
+  const [variantLabel, setVariantLabel] = useState<string>(defaultVariantLabel);
 
   useEffect(() => {
     let isCancelled = false;
@@ -80,8 +87,7 @@ export function ResultsView({
 
         setPreviewUrls(json.data.previewUrls);
         setVariantLabel(
-          json.data.variantLabel ||
-            (variant === "c" ? "C · GPT Image 1 via fal" : variant === "b" ? "B · FLUX Kontext Pro" : "A · FLUX Kontext Dev"),
+          json.data.variantLabel || defaultVariantLabel,
         );
         setStatus("completed");
       } catch (generationError) {

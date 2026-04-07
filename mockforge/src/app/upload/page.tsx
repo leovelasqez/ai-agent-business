@@ -11,7 +11,7 @@ interface UploadPageProps {
     category?: string;
     format?: string;
     productName?: string;
-    variant?: "a" | "b" | "c";
+    variant?: "a" | "b" | "c" | "d";
   }>;
 }
 
@@ -22,7 +22,7 @@ export default async function UploadPage({ searchParams }: UploadPageProps) {
   const category = params.category ?? "";
   const format = params.format ?? "1:1 square";
   const productName = params.productName ?? "";
-  const variant = params.variant === "b" ? "b" : params.variant === "c" ? "c" : "a";
+  const variant = params.variant === "d" ? "d" : params.variant === "c" ? "c" : params.variant === "b" ? "b" : "a";
 
   return (
     <main className="min-h-screen bg-neutral-950 text-white">
