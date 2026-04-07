@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { SiteHeader } from "@/components/site-header";
 import { MockupUploadForm } from "@/components/mockup-upload-form";
@@ -9,7 +10,7 @@ import { useLanguage } from "@/lib/language-context";
 import { getPresetById, type PresetId } from "@/lib/presets";
 import type { GenerationVariant } from "@/lib/image-provider";
 
-export default function UploadPage() {
+function UploadPageInner() {
   const { t } = useLanguage();
   const searchParams = useSearchParams();
 
@@ -53,5 +54,13 @@ export default function UploadPage() {
         />
       </div>
     </main>
+  );
+}
+
+export default function UploadPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-neutral-950" />}>
+      <UploadPageInner />
+    </Suspense>
   );
 }

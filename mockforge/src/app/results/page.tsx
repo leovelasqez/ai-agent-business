@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { SiteHeader } from "@/components/site-header";
 import { ResultsView } from "@/components/results-view";
@@ -9,7 +10,7 @@ import type { GenerationVariant } from "@/lib/image-provider";
 
 const VALID_VARIANTS = new Set<string>(["a", "b", "c", "d"]);
 
-export default function ResultsPage() {
+function ResultsPageInner() {
   const { t } = useLanguage();
   const searchParams = useSearchParams();
 
@@ -62,5 +63,13 @@ export default function ResultsPage() {
         />
       </div>
     </main>
+  );
+}
+
+export default function ResultsPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-neutral-950" />}>
+      <ResultsPageInner />
+    </Suspense>
   );
 }

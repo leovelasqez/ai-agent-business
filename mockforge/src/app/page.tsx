@@ -77,7 +77,7 @@ export default function Home() {
 
       <section id="how-it-works" className="border-y border-white/5 bg-black/20">
         <div className="mx-auto grid w-full max-w-6xl gap-6 px-6 py-14 md:grid-cols-3">
-          {landing.howItWorks.steps.map(([step, title, description]) => (
+          {(landing.howItWorks.steps as string[][]).map(([step, title, description]) => (
             <div key={step} className="rounded-3xl border border-white/10 bg-white/5 p-6">
               <div className="text-sm font-medium text-emerald-300">{landing.howItWorks.stepLabel} {step}</div>
               <h2 className="mt-3 text-2xl font-semibold">{title}</h2>
@@ -94,7 +94,7 @@ export default function Home() {
         </div>
 
         <div className="grid gap-6 md:grid-cols-3">
-          {landing.useCases.items.map((useCase) => (
+          {(landing.useCases.items as any[]).map((useCase: any) => (
             <div key={useCase.title} className="rounded-3xl border border-white/10 bg-white/5 p-6">
               <h3 className="text-xl font-medium">{useCase.title}</h3>
               <p className="mt-3 text-sm leading-7 text-neutral-400">{useCase.description}</p>
