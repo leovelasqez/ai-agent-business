@@ -70,7 +70,7 @@ export default async function GenerationDetailPage({ params }: Props) {
                       download
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="absolute bottom-3 right-3 rounded-full bg-black/60 px-3 py-1.5 text-xs text-white opacity-0 backdrop-blur-sm transition group-hover:opacity-100"
+                      className="absolute bottom-3 right-3 rounded-full bg-black/60 px-3 py-1.5 text-xs text-white opacity-70 backdrop-blur-sm transition hover:opacity-100"
                     >
                       Descargar
                     </a>
@@ -134,13 +134,6 @@ export default async function GenerationDetailPage({ params }: Props) {
                 />
               </dl>
             </div>
-
-            {generation.prompt && (
-              <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
-                <p className="mb-2 text-[11px] uppercase tracking-[0.2em] text-neutral-500">Prompt</p>
-                <p className="text-xs leading-relaxed text-neutral-400">{generation.prompt}</p>
-              </div>
-            )}
 
             <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
               <p className="mb-3 text-[11px] uppercase tracking-[0.2em] text-neutral-500">Valoración</p>
