@@ -99,9 +99,13 @@ export default async function HistoryPage() {
                       </span>
                       <div className="flex shrink-0 items-center gap-1.5">
                         {gen.rating === 1 ? (
-                          <span className="text-sm" title="Te gustó">👍</span>
+                          <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-medium text-emerald-400" title="Te gustó">
+                            ✓
+                          </span>
                         ) : gen.rating === -1 ? (
-                          <span className="text-sm" title="No te gustó">👎</span>
+                          <span className="rounded-full bg-red-500/15 px-2 py-0.5 text-[10px] font-medium text-red-400" title="No te gustó">
+                            ✕
+                          </span>
                         ) : null}
                         <span className="rounded-full bg-white/10 px-2 py-0.5 text-[10px] text-neutral-300">
                           {VARIANT_LABELS[gen.variant] ?? gen.variant}
