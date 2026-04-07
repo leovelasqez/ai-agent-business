@@ -31,7 +31,7 @@ export default async function UploadPage({ searchParams }: UploadPageProps) {
 
         <div className="flex items-center justify-between">
           <Link href="/" className="text-sm text-neutral-400 hover:text-white">
-            ← Back
+            ← Inicio
           </Link>
           <span className="rounded-full border border-white/10 px-3 py-1 text-xs text-neutral-300">
             Generación en vivo
