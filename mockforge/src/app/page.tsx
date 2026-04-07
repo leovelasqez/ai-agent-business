@@ -28,12 +28,17 @@ export default function Home() {
       <section className="mx-auto flex w-full max-w-6xl flex-col gap-12 px-6 py-12 lg:py-20">
         <header className="flex items-center justify-between">
           <div className="text-sm font-medium uppercase tracking-[0.25em] text-neutral-300">MockForge</div>
-          <Link
-            href="/upload"
-            className="rounded-full border border-white/20 px-4 py-2 text-sm text-white transition hover:border-white/40 hover:bg-white/5"
-          >
-            Generar
-          </Link>
+          <nav className="flex items-center gap-4">
+            <Link href="/history" className="text-sm text-neutral-400 transition hover:text-white">
+              Historial
+            </Link>
+            <Link
+              href="/upload"
+              className="rounded-full border border-white/20 px-4 py-2 text-sm text-white transition hover:border-white/40 hover:bg-white/5"
+            >
+              Generar
+            </Link>
+          </nav>
         </header>
 
         <div className="grid gap-10 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
@@ -125,18 +130,15 @@ export default function Home() {
       </section>
 
       <section className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-6 py-6 pb-16">
-        <div className="max-w-2xl">
-          <div className="text-sm font-medium uppercase tracking-[0.25em] text-neutral-500">Initial presets</div>
-          <h2 className="mt-3 text-3xl font-semibold tracking-tight">The first version stays tight and focused.</h2>
-        </div>
-
-        <div className="grid gap-4 md:grid-cols-3">
-          {PRESETS.map((preset) => (
-            <div key={preset.id} className="rounded-3xl border border-white/10 bg-white/5 p-6">
-              <h3 className="text-xl font-medium">{preset.name}</h3>
-              <p className="mt-3 text-sm leading-7 text-neutral-400">{preset.description}</p>
-            </div>
-          ))}
+        <div className="flex flex-col items-center gap-5 rounded-3xl border border-white/10 bg-white/5 px-8 py-10 text-center">
+          <div className="text-sm font-medium uppercase tracking-[0.25em] text-neutral-500">Ready to start?</div>
+          <h2 className="text-3xl font-semibold tracking-tight">Turn your product photo into a commercial mockup in seconds.</h2>
+          <Link
+            href="/upload"
+            className="rounded-2xl bg-white px-6 py-3 text-sm font-medium text-black transition hover:bg-neutral-200"
+          >
+            Generate your first mockup free
+          </Link>
         </div>
       </section>
     </main>
