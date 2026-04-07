@@ -1,6 +1,9 @@
 import Link from "next/link";
 import { SiteHeader } from "@/components/site-header";
 import { ResultsView } from "@/components/results-view";
+import type { GenerationVariant } from "@/lib/image-provider";
+
+const VALID_VARIANTS = new Set<string>(["a", "b", "c", "d"]);
 
 interface ResultsPageProps {
   searchParams: Promise<{
@@ -9,7 +12,8 @@ interface ResultsPageProps {
     format?: string;
     productName?: string;
     sourceImageUrl?: string;
-    variant?: "a" | "b" | "c";
+    variant?: string;
+    compareVariants?: string;
   }>;
 }
 
@@ -20,7 +24,23 @@ export default async function ResultsPage({ searchParams }: ResultsPageProps) {
   const format = params.format ?? "1:1 square";
   const productName = params.productName ?? "Untitled product";
   const sourceImageUrl = params.sourceImageUrl;
-  const variant = params.variant === "b" ? "b" : params.variant === "c" ? "c" : "a";
+
+  // Compare mode: parse comma-separated variants (e.g. "b,c,d")
+  const compareVariants = params.compareVariants
+    ? (params.compareVariants
+        .split(",")
+        .map((v) => v.trim())
+        .filter((v) => VALID_VARIANTS.has(v)) as GenerationVariant[])
+    : null;
+
+  const variant: GenerationVariant =
+    params.variant === "b"
+      ? "b"
+      : params.variant === "c"
+        ? "c"
+        : params.variant === "d"
+          ? "d"
+          : "a";
 
   return (
     <main className="min-h-screen bg-neutral-950 text-white">
@@ -32,7 +52,7 @@ export default async function ResultsPage({ searchParams }: ResultsPageProps) {
             ← Back to upload
           </Link>
           <span className="rounded-full border border-white/10 px-3 py-1 text-xs text-neutral-300">
-            Resultado
+            {compareVariants && compareVariants.length >= 2 ? "Comparación" : "Resultado"}
           </span>
         </div>
 
@@ -43,6 +63,7 @@ export default async function ResultsPage({ searchParams }: ResultsPageProps) {
           productName={productName}
           sourceImageUrl={sourceImageUrl}
           variant={variant}
+          compareVariants={compareVariants && compareVariants.length >= 2 ? compareVariants : null}
         />
       </div>
     </main>

@@ -36,6 +36,7 @@ interface GenerationRow {
   provider: string | null;
   status: "completed" | "failed" | "processing" | "idle";
   created_at: string;
+  rating: number | null;
 }
 
 function mapGenerationRow(row: GenerationRow): MockupGeneration & {
@@ -57,6 +58,7 @@ function mapGenerationRow(row: GenerationRow): MockupGeneration & {
     provider: row.provider ?? undefined,
     model: row.model,
     variant: row.variant,
+    rating: row.rating ?? null,
   };
 }
 
@@ -113,7 +115,7 @@ export async function getRecentGenerations(
     const { data, error } = await supabase
       .from("generations")
       .select(
-        "id, preset, category, format, product_name, variant, model, prompt, source_image_url, preview_urls, provider, status, created_at",
+        "id, preset, category, format, product_name, variant, model, prompt, source_image_url, preview_urls, provider, status, created_at, rating",
       )
       .order("created_at", { ascending: false })
       .limit(limit);
@@ -142,7 +144,7 @@ export async function getGenerationById(id: string): Promise<(MockupGeneration &
     const { data, error } = await supabase
       .from("generations")
       .select(
-        "id, preset, category, format, product_name, variant, model, prompt, source_image_url, preview_urls, provider, status, created_at",
+        "id, preset, category, format, product_name, variant, model, prompt, source_image_url, preview_urls, provider, status, created_at, rating",
       )
       .eq("id", id)
       .maybeSingle();
@@ -157,5 +159,31 @@ export async function getGenerationById(id: string): Promise<(MockupGeneration &
   } catch (err) {
     console.error("[db] getGenerationById unexpected error:", err instanceof Error ? err.message : err);
     return null;
+  }
+}
+
+/**
+ * Update the rating for a generation (1 = thumbs up, -1 = thumbs down).
+ * Non-fatal: returns false if Supabase is not configured or the update fails.
+ */
+export async function updateRating(id: string, rating: 1 | -1): Promise<boolean> {
+  if (!isSupabaseConfigured()) return false;
+
+  try {
+    const supabase = getSupabaseServiceClient();
+    const { error } = await supabase
+      .from("generations")
+      .update({ rating })
+      .eq("id", id);
+
+    if (error) {
+      console.error("[db] updateRating failed:", error.message);
+      return false;
+    }
+
+    return true;
+  } catch (err) {
+    console.error("[db] updateRating unexpected error:", err instanceof Error ? err.message : err);
+    return false;
   }
 }

@@ -7,6 +7,13 @@ import { FilePicker } from "@/components/file-picker";
 import { PRESETS, type PresetId } from "@/lib/presets";
 import type { GenerationVariant } from "@/lib/image-provider";
 
+const VARIANTS: { id: GenerationVariant; label: string; description: string }[] = [
+  { id: "a", label: "A · FLUX Dev", description: "Más rápido y barato, pero deforma más." },
+  { id: "b", label: "B · FLUX Pro", description: "Más caro, debería preservar mejor el producto." },
+  { id: "c", label: "C · GPT Image 1", description: "Vía fal, orientado a editar sin destruir el producto." },
+  { id: "d", label: "D · Nano Banana 2", description: "Edición de imagen con alta fidelidad al producto." },
+];
+
 interface MockupUploadFormProps {
   initialSourceImageUrl?: string;
   initialPreset?: PresetId;
@@ -31,6 +38,10 @@ export function MockupUploadForm({
   const [format, setFormat] = useState(initialFormat);
   const [preset, setPreset] = useState<PresetId>(initialPreset);
   const [variant, setVariant] = useState<GenerationVariant>(initialVariant);
+  const [compareMode, setCompareMode] = useState(false);
+  const [compareVariants, setCompareVariants] = useState<Set<GenerationVariant>>(
+    new Set(["b", "c", "d"]),
+  );
   const [selectedSourceImageUrl, setSelectedSourceImageUrl] = useState<string | null>(null);
   const [selectedFileName, setSelectedFileName] = useState<string>("");
   const [isUploadingFile, setIsUploadingFile] = useState(false);
@@ -38,10 +49,11 @@ export function MockupUploadForm({
   const [error, setError] = useState<string | null>(null);
 
   const effectiveSourceImageUrl = selectedSourceImageUrl || initialSourceImageUrl || null;
-  const canSubmit = useMemo(
-    () => !isSubmitting && !isUploadingFile && Boolean(effectiveSourceImageUrl),
-    [effectiveSourceImageUrl, isSubmitting, isUploadingFile],
-  );
+  const canSubmit = useMemo(() => {
+    const hasImage = Boolean(effectiveSourceImageUrl);
+    const hasVariants = compareMode ? compareVariants.size >= 2 : true;
+    return !isSubmitting && !isUploadingFile && hasImage && hasVariants;
+  }, [effectiveSourceImageUrl, isSubmitting, isUploadingFile, compareMode, compareVariants]);
 
   const uploadFile = useCallback(async (file: File) => {
     setSelectedFileName(file.name);
@@ -77,6 +89,18 @@ export function MockupUploadForm({
     }
   }, []);
 
+  const toggleCompareVariant = (v: GenerationVariant) => {
+    setCompareVariants((prev) => {
+      const next = new Set(prev);
+      if (next.has(v)) {
+        next.delete(v);
+      } else {
+        next.add(v);
+      }
+      return next;
+    });
+  };
+
   const handleSubmit = async () => {
     setIsSubmitting(true);
     setError(null);
@@ -96,7 +120,7 @@ export function MockupUploadForm({
         );
       }
 
-      if (!nextSourceImageUrl || !nextSourceImageUrl.trim()) {
+      if (!nextSourceImageUrl.trim()) {
         throw new Error("La imagen del producto no quedó lista para generar. Sube la imagen otra vez y espera a que termine el upload.");
       }
 
@@ -106,8 +130,13 @@ export function MockupUploadForm({
         format,
         productName: productName || "Untitled product",
         sourceImageUrl: nextSourceImageUrl.trim(),
-        variant,
       });
+
+      if (compareMode && compareVariants.size >= 2) {
+        params.set("compareVariants", [...compareVariants].join(","));
+      } else {
+        params.set("variant", variant);
+      }
 
       router.push(`/results?${params.toString()}`);
     } catch (submitError) {
@@ -191,57 +220,64 @@ export function MockupUploadForm({
           </div>
 
           <div>
-            <label className="mb-2 block text-sm text-neutral-300">Modo de modelo</label>
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="mb-3 flex items-center justify-between">
+              <label className="text-sm text-neutral-300">Modo de modelo</label>
               <button
                 type="button"
-                onClick={() => setVariant("a")}
-                className={`rounded-2xl border px-4 py-3 text-left text-sm transition ${
-                  variant === "a"
-                    ? "border-white bg-white text-black"
-                    : "border-white/10 bg-black/20 text-neutral-300 hover:border-white/20"
+                onClick={() => setCompareMode((v) => !v)}
+                className={`rounded-full border px-3 py-1 text-xs font-medium transition ${
+                  compareMode
+                    ? "border-violet-500/50 bg-violet-500/20 text-violet-300"
+                    : "border-white/10 bg-black/20 text-neutral-400 hover:border-white/20 hover:text-white"
                 }`}
               >
-                <div className="font-medium">A · FLUX Dev</div>
-                <div className="mt-1 text-xs opacity-80">Más rápido y barato, pero deforma más.</div>
-              </button>
-              <button
-                type="button"
-                onClick={() => setVariant("b")}
-                className={`rounded-2xl border px-4 py-3 text-left text-sm transition ${
-                  variant === "b"
-                    ? "border-white bg-white text-black"
-                    : "border-white/10 bg-black/20 text-neutral-300 hover:border-white/20"
-                }`}
-              >
-                <div className="font-medium">B · FLUX Pro</div>
-                <div className="mt-1 text-xs opacity-80">Más caro, debería preservar mejor el producto.</div>
-              </button>
-              <button
-                type="button"
-                onClick={() => setVariant("c")}
-                className={`rounded-2xl border px-4 py-3 text-left text-sm transition ${
-                  variant === "c"
-                    ? "border-white bg-white text-black"
-                    : "border-white/10 bg-black/20 text-neutral-300 hover:border-white/20"
-                }`}
-              >
-                <div className="font-medium">C · GPT Image 1</div>
-                <div className="mt-1 text-xs opacity-80">Vía fal, orientado a editar sin destruir el producto.</div>
-              </button>
-              <button
-                type="button"
-                onClick={() => setVariant("d")}
-                className={`rounded-2xl border px-4 py-3 text-left text-sm transition ${
-                  variant === "d"
-                    ? "border-white bg-white text-black"
-                    : "border-white/10 bg-black/20 text-neutral-300 hover:border-white/20"
-                }`}
-              >
-                <div className="font-medium">D · Nano Banana 2</div>
-                <div className="mt-1 text-xs opacity-80">Edición de imagen con alta fidelidad al producto.</div>
+                {compareMode ? "Comparando variantes" : "Comparar variantes"}
               </button>
             </div>
+
+            {compareMode ? (
+              <div className="space-y-2">
+                <p className="text-xs text-neutral-500">Selecciona al menos 2 variantes para comparar en paralelo.</p>
+                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                  {VARIANTS.map((v) => (
+                    <button
+                      key={v.id}
+                      type="button"
+                      onClick={() => toggleCompareVariant(v.id)}
+                      className={`rounded-2xl border px-4 py-3 text-left text-sm transition ${
+                        compareVariants.has(v.id)
+                          ? "border-violet-500/60 bg-violet-500/15 text-white"
+                          : "border-white/10 bg-black/20 text-neutral-400 hover:border-white/20"
+                      }`}
+                    >
+                      <div className="font-medium">{v.label}</div>
+                      <div className="mt-1 text-xs opacity-70">{v.description}</div>
+                    </button>
+                  ))}
+                </div>
+                {compareVariants.size < 2 ? (
+                  <p className="text-xs text-amber-400">Selecciona al menos 2 variantes.</p>
+                ) : null}
+              </div>
+            ) : (
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                {VARIANTS.map((v) => (
+                  <button
+                    key={v.id}
+                    type="button"
+                    onClick={() => setVariant(v.id)}
+                    className={`rounded-2xl border px-4 py-3 text-left text-sm transition ${
+                      variant === v.id
+                        ? "border-white bg-white text-black"
+                        : "border-white/10 bg-black/20 text-neutral-300 hover:border-white/20"
+                    }`}
+                  >
+                    <div className="font-medium">{v.label}</div>
+                    <div className="mt-1 text-xs opacity-80">{v.description}</div>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </section>
@@ -288,7 +324,13 @@ export function MockupUploadForm({
           disabled={!canSubmit}
           className="mt-6 inline-flex w-full items-center justify-center rounded-2xl bg-white px-5 py-3 text-sm font-medium text-black transition hover:bg-neutral-200 disabled:cursor-not-allowed disabled:opacity-60"
         >
-          {isSubmitting ? "Preparando..." : isUploadingFile ? "Subiendo imagen..." : "Generar mockups"}
+          {isSubmitting
+            ? "Preparando..."
+            : isUploadingFile
+              ? "Subiendo imagen..."
+              : compareMode
+                ? `Comparar ${compareVariants.size} variantes`
+                : "Generar mockups"}
         </button>
       </aside>
     </div>

@@ -97,9 +97,16 @@ export default async function HistoryPage() {
                       <span className="truncate text-sm font-medium text-white">
                         {gen.productName ?? "Sin nombre"}
                       </span>
-                      <span className="shrink-0 rounded-full bg-white/10 px-2 py-0.5 text-[10px] text-neutral-300">
-                        {VARIANT_LABELS[gen.variant] ?? gen.variant}
-                      </span>
+                      <div className="flex shrink-0 items-center gap-1.5">
+                        {gen.rating === 1 ? (
+                          <span className="text-sm" title="Te gustó">👍</span>
+                        ) : gen.rating === -1 ? (
+                          <span className="text-sm" title="No te gustó">👎</span>
+                        ) : null}
+                        <span className="rounded-full bg-white/10 px-2 py-0.5 text-[10px] text-neutral-300">
+                          {VARIANT_LABELS[gen.variant] ?? gen.variant}
+                        </span>
+                      </div>
                     </div>
                     <div className="text-xs text-neutral-500">{preset?.name ?? gen.preset}</div>
                     {gen.category && (

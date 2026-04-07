@@ -13,4 +13,5 @@ export interface MockupGeneration {
   productName?: string;
   prompt?: string;
   provider?: string;
+  rating?: number | null;
 }

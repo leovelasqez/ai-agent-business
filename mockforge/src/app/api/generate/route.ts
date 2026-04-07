@@ -11,7 +11,9 @@ export async function POST(request: Request) {
   const format = body?.format;
   const productName = body?.productName;
   const sourceImageUrl = body?.sourceImageUrl;
-  const variant = body?.variant === "b" ? "b" : body?.variant === "c" ? "c" : "a";
+  const variantRaw = body?.variant;
+  const variant: "a" | "b" | "c" | "d" =
+    variantRaw === "b" ? "b" : variantRaw === "c" ? "c" : variantRaw === "d" ? "d" : "a";
   const provider = process.env.IMAGE_PROVIDER || "fal";
 
   if (provider === "fal" && !process.env.FAL_KEY) {
