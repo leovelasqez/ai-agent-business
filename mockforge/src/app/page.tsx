@@ -1,6 +1,12 @@
 import Link from "next/link";
 import { PRESETS } from "@/lib/presets";
 
+const PRESET_ACCENTS: Record<string, string> = {
+  clean_studio: "from-neutral-700 to-neutral-900",
+  lifestyle_scene: "from-blue-900 to-neutral-900",
+  ad_creative: "from-violet-900 to-neutral-900",
+};
+
 const useCases = [
   {
     title: "Product pages",
@@ -21,14 +27,12 @@ export default function Home() {
     <main className="min-h-screen bg-neutral-950 text-white">
       <section className="mx-auto flex w-full max-w-6xl flex-col gap-12 px-6 py-12 lg:py-20">
         <header className="flex items-center justify-between">
-          <div>
-            <div className="text-sm font-medium uppercase tracking-[0.25em] text-neutral-500">MockForge</div>
-          </div>
+          <div className="text-sm font-medium uppercase tracking-[0.25em] text-neutral-300">MockForge</div>
           <Link
             href="/upload"
-            className="rounded-full border border-white/15 px-4 py-2 text-sm text-white transition hover:border-white/30"
+            className="rounded-full border border-white/20 px-4 py-2 text-sm text-white transition hover:border-white/40 hover:bg-white/5"
           >
-            Open MVP
+            Generar
           </Link>
         </header>
 
@@ -59,21 +63,30 @@ export default function Home() {
               </a>
             </div>
 
-            <div className="mt-6 rounded-2xl border border-amber-500/20 bg-amber-500/10 p-4 text-sm text-amber-100">
-              Tip: if the file picker fails inside Telegram or another in-app browser, open MockForge in Chrome or Safari.
-            </div>
           </div>
 
           <div className="rounded-[2rem] border border-white/10 bg-white/5 p-5 shadow-2xl shadow-black/30">
-            <div className="grid gap-4 sm:grid-cols-2">
-              {Array.from({ length: 4 }).map((_, index) => (
-                <div key={index} className="overflow-hidden rounded-3xl border border-white/10 bg-black/20">
-                  <div className="aspect-[4/5] bg-gradient-to-br from-neutral-800 via-neutral-900 to-black" />
-                  <div className="border-t border-white/10 px-4 py-3 text-sm text-neutral-400">
-                    Example mockup {index + 1}
+            <div className="flex flex-col gap-3">
+              {PRESETS.map((preset) => (
+                <div
+                  key={preset.id}
+                  className="flex items-center gap-4 rounded-2xl border border-white/10 bg-black/20 p-4 transition hover:border-white/20"
+                >
+                  <div
+                    className={`h-10 w-10 flex-shrink-0 rounded-xl bg-gradient-to-br ${PRESET_ACCENTS[preset.id] ?? "from-neutral-700 to-neutral-900"}`}
+                  />
+                  <div>
+                    <div className="text-sm font-medium text-white">{preset.name}</div>
+                    <div className="mt-0.5 text-xs text-neutral-500">{preset.description}</div>
                   </div>
                 </div>
               ))}
+              <div className="flex items-center justify-between rounded-2xl border border-white/5 bg-black/10 px-4 py-3">
+                <span className="text-xs text-neutral-500">3 presets · 4 variantes de modelo</span>
+                <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-medium text-emerald-400">
+                  En producción
+                </span>
+              </div>
             </div>
           </div>
         </div>
