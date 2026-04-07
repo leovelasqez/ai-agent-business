@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useLanguage } from "@/lib/language-context";
 
 function ThumbUp({ className }: { className?: string }) {
   return (
@@ -24,6 +25,8 @@ interface RatingButtonsProps {
 }
 
 export function RatingButtons({ generationId, initialRating }: RatingButtonsProps) {
+  const { t } = useLanguage();
+  const r = t.rating;
   const [rating, setRating] = useState<number | null>(initialRating ?? null);
   const [loading, setLoading] = useState(false);
 
@@ -52,8 +55,8 @@ export function RatingButtons({ generationId, initialRating }: RatingButtonsProp
         type="button"
         onClick={() => rate(1)}
         disabled={loading}
-        title="Me gusta"
-        aria-label="Me gusta"
+        title={r.likeTitle}
+        aria-label={r.likeAriaLabel}
         aria-pressed={rating === 1}
         className={`flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-medium transition disabled:cursor-not-allowed disabled:opacity-50 ${
           rating === 1
@@ -62,14 +65,14 @@ export function RatingButtons({ generationId, initialRating }: RatingButtonsProp
         }`}
       >
         <ThumbUp className="h-3.5 w-3.5" />
-        <span>Útil</span>
+        <span>{r.like}</span>
       </button>
       <button
         type="button"
         onClick={() => rate(-1)}
         disabled={loading}
-        title="No me gusta"
-        aria-label="No me gusta"
+        title={r.dislikeTitle}
+        aria-label={r.dislikeAriaLabel}
         aria-pressed={rating === -1}
         className={`flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-medium transition disabled:cursor-not-allowed disabled:opacity-50 ${
           rating === -1
@@ -78,7 +81,7 @@ export function RatingButtons({ generationId, initialRating }: RatingButtonsProp
         }`}
       >
         <ThumbDown className="h-3.5 w-3.5" />
-        <span>No útil</span>
+        <span>{r.dislike}</span>
       </button>
     </div>
   );

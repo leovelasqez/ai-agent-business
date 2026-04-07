@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useLanguage } from "@/lib/language-context";
 
 function detectEmbeddedBrowser() {
   if (typeof navigator === "undefined") return false;
@@ -9,6 +10,8 @@ function detectEmbeddedBrowser() {
 }
 
 export function WebviewWarning() {
+  const { t } = useLanguage();
+  const w = t.webviewWarning;
   const [isEmbeddedBrowser, setIsEmbeddedBrowser] = useState(false);
 
   useEffect(() => {
@@ -24,10 +27,8 @@ export function WebviewWarning() {
 
   return (
     <div className="rounded-2xl border border-amber-500/25 bg-amber-500/10 p-4 text-sm text-amber-100">
-      <div className="font-medium text-amber-50">Abre MockForge fuera de Telegram</div>
-      <p className="mt-2">
-        Parece que abriste MockForge dentro de un navegador embebido, como Telegram o Instagram. Ahí los uploads y requests a veces fallan.
-      </p>
+      <div className="font-medium text-amber-50">{w.title}</div>
+      <p className="mt-2">{w.message}</p>
       <div className="mt-4 flex flex-col gap-3 sm:flex-row">
         <a
           href={directUrl}
@@ -35,7 +36,7 @@ export function WebviewWarning() {
           rel="noreferrer"
           className="inline-flex items-center justify-center rounded-xl bg-white px-4 py-3 text-sm font-medium text-black transition hover:bg-neutral-200"
         >
-          Abrir en navegador
+          {w.openBrowser}
         </a>
         <button
           type="button"
@@ -47,7 +48,7 @@ export function WebviewWarning() {
           }}
           className="inline-flex items-center justify-center rounded-xl border border-amber-200/30 px-4 py-3 text-sm font-medium text-amber-50 transition hover:border-amber-100/50"
         >
-          Copiar link
+          {w.copyLink}
         </button>
       </div>
     </div>

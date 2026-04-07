@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { ResultsSummary } from "@/components/results-summary";
 import { RatingButtons } from "@/components/rating-buttons";
+import { useLanguage } from "@/lib/language-context";
 import type { GenerationStatus } from "@/lib/types";
 import type { GenerationVariant } from "@/lib/image-provider";
 
@@ -44,16 +45,6 @@ const VARIANT_LABELS: Record<string, string> = {
   d: "D · Nano Banana 2",
 };
 
-function friendlyError(raw: string): string {
-  if (raw.includes("Load failed"))
-    return "La solicitud falló al cargar. Si abriste MockForge dentro de Telegram, prueba en Chrome o Safari y vuelve a intentar.";
-  if (raw.includes("Failed to fetch"))
-    return "No se pudo conectar con el servidor. Revisa la conexión o intenta abrir MockForge fuera del navegador embebido.";
-  if (raw.includes("ENOENT"))
-    return "La imagen fuente ya no existe en el servidor. Sube el producto otra vez e intenta de nuevo.";
-  return raw;
-}
-
 async function callGenerate(body: {
   preset: string;
   category: string;
@@ -87,10 +78,16 @@ function ImageCard({
   url,
   index,
   generationId,
+  downloadLabel,
+  mockupLabel,
+  previewReadyLabel,
 }: {
   url: string;
   index: number;
   generationId: string | null;
+  downloadLabel: string;
+  mockupLabel: string;
+  previewReadyLabel: string;
 }) {
   return (
     <div className="group overflow-hidden rounded-[1.5rem] border border-white/10 bg-black/20">
@@ -105,8 +102,8 @@ function ImageCard({
       </div>
       <div className="flex items-center justify-between px-4 py-3">
         <div>
-          <div className="text-sm font-medium text-white">Mockup {index + 1}</div>
-          <div className="mt-0.5 text-xs text-white/50">Preview lista para revisar o compartir</div>
+          <div className="text-sm font-medium text-white">{mockupLabel} {index + 1}</div>
+          <div className="mt-0.5 text-xs text-white/50">{previewReadyLabel}</div>
         </div>
         <div className="flex items-center gap-2">
           {generationId ? (
@@ -119,7 +116,7 @@ function ImageCard({
             download
             className="rounded-xl border border-white/15 px-3 py-1.5 text-xs font-medium text-white transition hover:border-white/30 hover:bg-white/10"
           >
-            Descargar
+            {downloadLabel}
           </a>
         </div>
       </div>
@@ -129,12 +126,20 @@ function ImageCard({
 
 // ── Compare grid card ─────────────────────────────────────────────────────────
 
-function CompareCard({ result, sourceImageUrl }: { result: VariantResult; sourceImageUrl?: string }) {
+function CompareCard({
+  result,
+  sourceImageUrl,
+  rv,
+}: {
+  result: VariantResult;
+  sourceImageUrl?: string;
+  rv: ReturnType<typeof useLanguage>["t"]["resultsView"];
+}) {
   return (
     <div className="rounded-[2rem] border border-white/10 bg-white/5 p-5">
       <div className="mb-4 flex items-center justify-between gap-3">
         <div>
-          <div className="text-xs uppercase tracking-[0.2em] text-neutral-500">Variante</div>
+          <div className="text-xs uppercase tracking-[0.2em] text-neutral-500">{rv.variantLabel}</div>
           <div className="mt-1 text-base font-medium text-white">{result.variantLabel}</div>
         </div>
         <div
@@ -147,10 +152,10 @@ function CompareCard({ result, sourceImageUrl }: { result: VariantResult; source
           }`}
         >
           {result.status === "processing"
-            ? "En curso"
+            ? rv.variantStatus.processing
             : result.status === "failed"
-              ? "Falló"
-              : "Listo"}
+              ? rv.variantStatus.failed
+              : rv.variantStatus.completed}
         </div>
       </div>
 
@@ -165,16 +170,24 @@ function CompareCard({ result, sourceImageUrl }: { result: VariantResult; source
       ) : (
         <div className="grid gap-3">
           {result.previewUrls.map((url, i) => (
-            <ImageCard key={`${url}-${i}`} url={url} index={i} generationId={result.generationId} />
+            <ImageCard
+              key={`${url}-${i}`}
+              url={url}
+              index={i}
+              generationId={result.generationId}
+              downloadLabel={rv.download}
+              mockupLabel={rv.mockupLabel}
+              previewReadyLabel={rv.previewReady}
+            />
           ))}
         </div>
       )}
 
       {result.status === "completed" && sourceImageUrl ? (
         <div className="mt-4">
-          <div className="mb-2 text-xs text-neutral-500">Original</div>
+          <div className="mb-2 text-xs text-neutral-500">{rv.originalLabel}</div>
           <div className="relative aspect-square overflow-hidden rounded-[1.5rem] border border-white/10 bg-black/20">
-            <Image src={sourceImageUrl} alt="Imagen base" fill className="object-cover" unoptimized />
+            <Image src={sourceImageUrl} alt={rv.sourceImageTitle} fill className="object-cover" unoptimized />
           </div>
         </div>
       ) : null}
@@ -193,6 +206,16 @@ export function ResultsView({
   variant = "a",
   compareVariants,
 }: ResultsViewProps) {
+  const { t } = useLanguage();
+  const rv = t.resultsView;
+
+  function friendlyError(raw: string): string {
+    if (raw.includes("Load failed")) return rv.errors.loadFailed;
+    if (raw.includes("Failed to fetch")) return rv.errors.fetchFailed;
+    if (raw.includes("ENOENT")) return rv.errors.fileNotFound;
+    return raw;
+  }
+
   // ── Single mode state ──
   const [status, setStatus] = useState<GenerationStatus>("processing");
   const [previewUrls, setPreviewUrls] = useState<string[]>([]);
@@ -252,7 +275,7 @@ export function ResultsView({
     return () => { isCancelled = true; };
   }, [preset, category, format, productName, sourceImageUrl, variant, isCompareMode, defaultVariantLabel]);
 
-  // ── Compare mode: generate each variant independently, update state as each resolves ──
+  // ── Compare mode: generate each variant independently ──
   useEffect(() => {
     if (!isCompareMode || !compareVariants) return;
 
@@ -292,7 +315,6 @@ export function ResultsView({
       }
     }
 
-    // Fire all in parallel
     void Promise.all(compareVariants.map((v, i) => generateVariant(v, i)));
 
     return () => { isCancelled = true; };
@@ -301,24 +323,21 @@ export function ResultsView({
   const title = useMemo(() => {
     if (isCompareMode) {
       const allDone = variantResults.every((r) => r.status !== "processing");
-      if (!allDone) return "Generando comparación de variantes...";
+      if (!allDone) return rv.title.compareLoading;
       const anyFailed = variantResults.some((r) => r.status === "failed");
-      return anyFailed ? "Comparación completada con errores" : "Comparación lista";
+      return anyFailed ? rv.title.compareWithErrors : rv.title.compareDone;
     }
-    if (status === "processing") return "Generando tus mockups premium...";
-    if (status === "failed") return "No se pudieron generar los mockups";
-    return "Tus mockups están listos";
-  }, [status, isCompareMode, variantResults]);
+    if (status === "processing") return rv.title.singleLoading;
+    if (status === "failed") return rv.title.singleFailed;
+    return rv.title.singleDone;
+  }, [status, isCompareMode, variantResults, rv]);
 
   const subtitle = useMemo(() => {
-    if (isCompareMode)
-      return "Generando el mismo producto con múltiples modelos en paralelo para que puedas elegir el mejor resultado.";
-    if (status === "processing")
-      return "Estamos creando versiones con look comercial a partir de tu imagen. Esto puede tardar unos segundos.";
-    if (status === "failed")
-      return "Prueba con otra imagen del producto o vuelve al paso anterior para ajustar los datos.";
-    return "Ya tienes previews listas para validar tu idea, enseñar a clientes o preparar tu siguiente iteración.";
-  }, [status, isCompareMode]);
+    if (isCompareMode) return rv.subtitle.compare;
+    if (status === "processing") return rv.subtitle.singleLoading;
+    if (status === "failed") return rv.subtitle.singleFailed;
+    return rv.subtitle.singleDone;
+  }, [status, isCompareMode, rv]);
 
   const overallStatus = isCompareMode
     ? variantResults.every((r) => r.status !== "processing")
@@ -336,7 +355,7 @@ export function ResultsView({
         <div className="grid gap-8 lg:grid-cols-[1.15fr_0.85fr] lg:items-end">
           <div className="space-y-5">
             <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs uppercase tracking-[0.22em] text-neutral-300">
-              {isCompareMode ? "MockForge Comparación" : "MockForge Results"}
+              {isCompareMode ? rv.badge.compare : rv.badge.single}
             </div>
             <div className="space-y-3">
               <h1 className="text-4xl font-semibold tracking-tight md:text-5xl">{title}</h1>
@@ -348,7 +367,7 @@ export function ResultsView({
                 href="/upload"
                 className="inline-flex items-center justify-center rounded-2xl border border-white/15 px-5 py-3 text-sm font-medium text-white transition hover:border-white/30"
               >
-                Crear otra versión
+                {rv.createAnother}
               </Link>
               {primaryPreview ? (
                 <a
@@ -357,7 +376,7 @@ export function ResultsView({
                   rel="noreferrer"
                   className="inline-flex items-center justify-center rounded-2xl bg-white px-5 py-3 text-sm font-medium text-black transition hover:bg-neutral-200"
                 >
-                  Abrir mejor resultado
+                  {rv.openBest}
                 </a>
               ) : null}
             </div>
@@ -366,9 +385,9 @@ export function ResultsView({
           <div className="rounded-[2rem] border border-white/10 bg-black/20 p-5 backdrop-blur-sm">
             <div className="mb-4 flex items-center justify-between">
               <div>
-                <div className="text-xs uppercase tracking-[0.2em] text-neutral-500">Estado</div>
+                <div className="text-xs uppercase tracking-[0.2em] text-neutral-500">{rv.statusLabel}</div>
                 <div className="mt-2 text-lg font-medium text-white">
-                  {overallStatus === "processing" ? "Procesando" : "Completado"}
+                  {overallStatus === "processing" ? rv.statusProcessing : rv.statusCompleted}
                 </div>
               </div>
               <div className="flex flex-col items-end gap-2">
@@ -379,13 +398,13 @@ export function ResultsView({
                       : "bg-white/10 text-neutral-200"
                   }`}
                 >
-                  {overallStatus === "processing" ? "En curso" : "Listo"}
+                  {overallStatus === "processing" ? rv.badgeProcessing : rv.badgeReady}
                 </div>
                 {!isCompareMode ? (
                   <div className="text-xs uppercase tracking-[0.18em] text-neutral-500">{variantLabel}</div>
                 ) : (
                   <div className="text-xs text-neutral-500">
-                    {variantResults.filter((r) => r.status === "completed").length}/{variantResults.length} listas
+                    {variantResults.filter((r) => r.status === "completed").length}/{variantResults.length} {rv.badgeReady.toLowerCase()}
                   </div>
                 )}
               </div>
@@ -405,7 +424,7 @@ export function ResultsView({
       {isCompareMode ? (
         <section className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
           {variantResults.map((result) => (
-            <CompareCard key={result.variant} result={result} sourceImageUrl={sourceImageUrl} />
+            <CompareCard key={result.variant} result={result} sourceImageUrl={sourceImageUrl} rv={rv} />
           ))}
         </section>
       ) : null}
@@ -416,17 +435,15 @@ export function ResultsView({
           {status === "processing" ? (
             <section className="rounded-[2rem] border border-white/10 bg-white/5 p-10 text-center">
               <div className="mx-auto h-14 w-14 animate-spin rounded-full border-4 border-white/15 border-t-white" />
-              <p className="mt-5 text-sm text-neutral-400">Creando previews premium...</p>
+              <p className="mt-5 text-sm text-neutral-400">{rv.spinnerText}</p>
             </section>
           ) : null}
 
           {status === "failed" ? (
             <section className="rounded-[2rem] border border-red-500/20 bg-red-500/10 p-6 text-red-100">
-              <div className="text-lg font-medium">Error de generación</div>
+              <div className="text-lg font-medium">{rv.errorTitle}</div>
               <p className="mt-2 text-sm text-red-200">{error}</p>
-              <p className="mt-2 text-xs text-red-300/90">
-                Consejo: si esto pasó dentro de Telegram o de otro navegador embebido, abre MockForge en Chrome o Safari.
-              </p>
+              <p className="mt-2 text-xs text-red-300/90">{rv.errorTip}</p>
             </section>
           ) : null}
 
@@ -436,12 +453,12 @@ export function ResultsView({
                 <div className="rounded-[2rem] border border-white/10 bg-white/5 p-5">
                   <div className="mb-4 flex items-center justify-between">
                     <div>
-                      <div className="text-xs uppercase tracking-[0.2em] text-neutral-500">Original</div>
-                      <div className="mt-2 text-lg font-medium text-white">Imagen base</div>
+                      <div className="text-xs uppercase tracking-[0.2em] text-neutral-500">{rv.originalLabel}</div>
+                      <div className="mt-2 text-lg font-medium text-white">{rv.sourceImageTitle}</div>
                     </div>
                   </div>
                   <div className="relative aspect-square overflow-hidden rounded-[1.5rem] border border-white/10 bg-black/20">
-                    <Image src={sourceImageUrl} alt="Imagen base del producto" fill className="object-cover" unoptimized />
+                    <Image src={sourceImageUrl} alt={rv.sourceImageTitle} fill className="object-cover" unoptimized />
                   </div>
                 </div>
               ) : null}
@@ -450,10 +467,10 @@ export function ResultsView({
                 <div className="rounded-[2rem] border border-white/10 bg-white/5 p-5">
                   <div className="mb-5 flex items-center justify-between gap-4">
                     <div>
-                      <div className="text-xs uppercase tracking-[0.2em] text-neutral-500">Resultados</div>
-                      <div className="mt-2 text-lg font-medium text-white">Mockups generados</div>
+                      <div className="text-xs uppercase tracking-[0.2em] text-neutral-500">{rv.resultsLabel}</div>
+                      <div className="mt-2 text-lg font-medium text-white">{rv.generatedMockups}</div>
                     </div>
-                    <div className="text-sm text-neutral-400">{previewUrls.length} variantes</div>
+                    <div className="text-sm text-neutral-400">{previewUrls.length} {rv.variants}</div>
                   </div>
 
                   <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
@@ -463,6 +480,9 @@ export function ResultsView({
                         url={url}
                         index={index}
                         generationId={generationId}
+                        downloadLabel={rv.download}
+                        mockupLabel={rv.mockupLabel}
+                        previewReadyLabel={rv.previewReady}
                       />
                     ))}
                   </div>
@@ -475,21 +495,21 @@ export function ResultsView({
 
       <section className="grid gap-6 rounded-[2rem] border border-white/10 bg-[linear-gradient(135deg,rgba(255,255,255,0.07),rgba(255,255,255,0.02))] p-6 lg:grid-cols-[1fr_auto] lg:items-center">
         <div>
-          <h2 className="text-2xl font-semibold">Desbloquea más variantes y exports HD</h2>
+          <h2 className="text-2xl font-semibold">{rv.upsell.title}</h2>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-neutral-400">
-            Si este resultado te sirve, el siguiente paso es convertir estas previews en un flujo comercial completo con más packs, mejor resolución y entregables listos para vender.
+            {rv.upsell.description}
           </p>
         </div>
 
         <div className="flex flex-col gap-3 sm:flex-row">
           <button className="rounded-2xl border border-white/15 px-5 py-3 text-sm font-medium text-white transition hover:border-white/30">
-            $9 · Desbloquear este pack
+            {rv.upsell.pack}
           </button>
           <Link
             href="/success"
             className="rounded-2xl bg-white px-5 py-3 text-sm font-medium text-black transition hover:bg-neutral-200"
           >
-            $19 · Comprar 3 packs
+            {rv.upsell.bundle}
           </Link>
         </div>
       </section>

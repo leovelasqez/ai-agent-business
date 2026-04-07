@@ -5,14 +5,8 @@ import { useCallback, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { FilePicker } from "@/components/file-picker";
 import { PRESETS, type PresetId } from "@/lib/presets";
+import { useLanguage } from "@/lib/language-context";
 import type { GenerationVariant } from "@/lib/image-provider";
-
-const VARIANTS: { id: GenerationVariant; label: string; description: string }[] = [
-  { id: "a", label: "A · FLUX Dev", description: "Más rápido y barato, pero deforma más." },
-  { id: "b", label: "B · FLUX Pro", description: "Más caro, debería preservar mejor el producto." },
-  { id: "c", label: "C · GPT Image 1", description: "Vía fal, orientado a editar sin destruir el producto." },
-  { id: "d", label: "D · Nano Banana 2", description: "Edición de imagen con alta fidelidad al producto." },
-];
 
 interface MockupUploadFormProps {
   initialSourceImageUrl?: string;
@@ -32,6 +26,15 @@ export function MockupUploadForm({
   initialVariant = "a",
 }: MockupUploadFormProps) {
   const router = useRouter();
+  const { t } = useLanguage();
+  const f = t.form;
+
+  const VARIANTS: { id: GenerationVariant; label: string; description: string }[] = [
+    { id: "a", label: f.variants[0].label, description: f.variants[0].description },
+    { id: "b", label: f.variants[1].label, description: f.variants[1].description },
+    { id: "c", label: f.variants[2].label, description: f.variants[2].description },
+    { id: "d", label: f.variants[3].label, description: f.variants[3].description },
+  ];
 
   const [productName, setProductName] = useState(initialProductName);
   const [category, setCategory] = useState(initialCategory);
@@ -115,13 +118,11 @@ export function MockupUploadForm({
       }
 
       if (!nextSourceImageUrl) {
-        throw new Error(
-          "No hay imagen disponible. Sube una imagen real del producto o entra con un link que ya apunte a una imagen válida en /uploads.",
-        );
+        throw new Error("No image available. Upload a real product image or enter with a link already pointing to a valid image in /uploads.");
       }
 
       if (!nextSourceImageUrl.trim()) {
-        throw new Error("La imagen del producto no quedó lista para generar. Sube la imagen otra vez y espera a que termine el upload.");
+        throw new Error("The product image was not ready to generate. Upload the image again and wait for the upload to finish.");
       }
 
       const params = new URLSearchParams({
@@ -146,6 +147,14 @@ export function MockupUploadForm({
     }
   };
 
+  const submitLabel = isSubmitting
+    ? f.submitPreparing
+    : isUploadingFile
+      ? f.submitUploading
+      : compareMode
+        ? f.submitCompare.replace("{n}", String(compareVariants.size))
+        : f.submitGenerate;
+
   return (
     <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
       <section className="rounded-3xl border border-white/10 bg-white/5 p-6">
@@ -168,7 +177,7 @@ export function MockupUploadForm({
           {effectiveSourceImageUrl && !selectedSourceImageUrl ? (
             <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/10 p-4">
               <div className="mb-3 text-sm text-emerald-100">
-                Imagen precargada. Puedes generar directo o reemplazarla subiendo otra.
+                {f.preloadedImage}
               </div>
               <div className="relative aspect-square max-w-sm overflow-hidden rounded-3xl border border-white/10 bg-black/20">
                 <Image src={effectiveSourceImageUrl} alt="Preloaded source image" fill className="object-cover" unoptimized />
@@ -178,42 +187,42 @@ export function MockupUploadForm({
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
-              <label className="mb-2 block text-sm text-neutral-300">Nombre del producto</label>
+              <label className="mb-2 block text-sm text-neutral-300">{f.productName}</label>
               <input
                 value={productName}
                 onChange={(event) => setProductName(event.target.value)}
                 className="w-full rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-sm outline-none placeholder:text-neutral-600"
-                placeholder="Ej: Vitamin C Serum"
+                placeholder={f.productNamePlaceholder}
               />
             </div>
 
             <div>
-              <label className="mb-2 block text-sm text-neutral-300">Categoría del producto</label>
+              <label className="mb-2 block text-sm text-neutral-300">{f.productCategory}</label>
               <input
                 value={category}
                 onChange={(event) => setCategory(event.target.value)}
                 className="w-full rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-sm outline-none placeholder:text-neutral-600"
-                placeholder="Ej: skincare, candle, supplement"
+                placeholder={f.productCategoryPlaceholder}
               />
             </div>
           </div>
 
           <div>
-            <label className="mb-2 block text-sm text-neutral-300">Formato</label>
+            <label className="mb-2 block text-sm text-neutral-300">{f.format}</label>
             <select
               value={format}
               onChange={(event) => setFormat(event.target.value)}
               className="w-full rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-sm outline-none"
             >
-              <option value="1:1 square">1:1 Cuadrado</option>
-              <option value="4:5 portrait">4:5 Vertical</option>
-              <option value="9:16 story">9:16 Story (Instagram)</option>
+              <option value="1:1 square">{f.formatOptions.square}</option>
+              <option value="4:5 portrait">{f.formatOptions.portrait}</option>
+              <option value="9:16 story">{f.formatOptions.story}</option>
             </select>
           </div>
 
           <div>
             <div className="mb-3 flex items-center justify-between">
-              <label className="text-sm text-neutral-300">Modo de modelo</label>
+              <label className="text-sm text-neutral-300">{f.modelMode}</label>
               <button
                 type="button"
                 onClick={() => setCompareMode((v) => !v)}
@@ -223,13 +232,13 @@ export function MockupUploadForm({
                     : "border-white/10 bg-black/20 text-neutral-400 hover:border-white/20 hover:text-white"
                 }`}
               >
-                {compareMode ? "Comparando variantes" : "Comparar variantes"}
+                {compareMode ? f.comparingVariants : f.compareVariants}
               </button>
             </div>
 
             {compareMode ? (
               <div className="space-y-2">
-                <p className="text-xs text-neutral-500">Selecciona al menos 2 variantes para comparar en paralelo.</p>
+                <p className="text-xs text-neutral-500">{f.compareHint}</p>
                 <div className="grid gap-3 sm:grid-cols-2">
                   {VARIANTS.map((v) => (
                     <button
@@ -248,7 +257,7 @@ export function MockupUploadForm({
                   ))}
                 </div>
                 {compareVariants.size < 2 ? (
-                  <p className="text-xs text-amber-400">Selecciona al menos 2 variantes.</p>
+                  <p className="text-xs text-amber-400">{f.compareWarning}</p>
                 ) : null}
               </div>
             ) : (
@@ -275,7 +284,7 @@ export function MockupUploadForm({
       </section>
 
       <aside className="rounded-3xl border border-white/10 bg-white/5 p-6">
-        <h2 className="text-lg font-medium">Elige un preset</h2>
+        <h2 className="text-lg font-medium">{f.choosePreset}</h2>
         <div className="mt-4 space-y-3">
           {PRESETS.map((item) => (
             <label
@@ -300,7 +309,7 @@ export function MockupUploadForm({
 
         {!effectiveSourceImageUrl ? (
           <div className="mt-4 rounded-2xl border border-amber-500/20 bg-amber-500/10 p-4 text-sm text-amber-100">
-            Primero sube una imagen válida y espera a que quede confirmada antes de generar, sobre todo para la variante C.
+            {f.uploadFirst}
           </div>
         ) : null}
 
@@ -316,13 +325,7 @@ export function MockupUploadForm({
           disabled={!canSubmit}
           className="mt-6 inline-flex w-full items-center justify-center rounded-2xl bg-white px-5 py-3 text-sm font-medium text-black transition hover:bg-neutral-200 disabled:cursor-not-allowed disabled:opacity-60"
         >
-          {isSubmitting
-            ? "Preparando..."
-            : isUploadingFile
-              ? "Subiendo imagen..."
-              : compareMode
-                ? `Comparar ${compareVariants.size} variantes`
-                : "Generar mockups"}
+          {submitLabel}
         </button>
       </aside>
     </div>

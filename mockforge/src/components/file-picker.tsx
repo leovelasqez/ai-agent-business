@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { memo, useEffect, useId, useState } from "react";
+import { useLanguage } from "@/lib/language-context";
 
 interface FilePickerProps {
   selectedFileName?: string;
@@ -11,6 +12,8 @@ interface FilePickerProps {
 
 function FilePickerComponent({ selectedFileName, isUploading = false, onFileSelected }: FilePickerProps) {
   const inputId = useId();
+  const { t } = useLanguage();
+  const fp = t.filePicker;
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [internalSelectedFileName, setInternalSelectedFileName] = useState<string>("");
 
@@ -46,7 +49,7 @@ function FilePickerComponent({ selectedFileName, isUploading = false, onFileSele
   return (
     <div>
       <label className="mb-2 block text-sm text-neutral-300" htmlFor={inputId}>
-        Imagen del producto
+        {fp.label}
       </label>
 
       <div className="rounded-2xl border border-dashed border-white/15 bg-black/20 p-4">
@@ -62,8 +65,8 @@ function FilePickerComponent({ selectedFileName, isUploading = false, onFileSele
           />
 
           <div className="flex items-center gap-2 text-sm text-neutral-500">
-            <span>PNG, JPG o WEBP</span>
-            {isUploading && <span className="text-emerald-400">· Subiendo...</span>}
+            <span>{fp.formats}</span>
+            {isUploading && <span className="text-emerald-400">{fp.uploading}</span>}
             {visibleSelectedFileName && !isUploading && (
               <span className="text-emerald-400 truncate">· {visibleSelectedFileName}</span>
             )}
@@ -75,14 +78,14 @@ function FilePickerComponent({ selectedFileName, isUploading = false, onFileSele
             </div>
           ) : (
             <div className="flex min-h-56 items-center justify-center rounded-2xl border border-dashed border-white/10 bg-black/20 text-center text-sm text-neutral-500">
-              La vista previa aparecerá aquí cuando selecciones una imagen
+              {fp.placeholder}
             </div>
           )}
         </div>
       </div>
 
       <p className="mt-2 text-xs text-neutral-500">
-        Usa una imagen real del producto. Si subes un archivo vacío, corrupto o demasiado pequeño, el sistema lo va a rechazar antes de generar.
+        {fp.hint}
       </p>
     </div>
   );

@@ -1,28 +1,27 @@
+"use client";
+
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { SiteHeader } from "@/components/site-header";
 import { MockupUploadForm } from "@/components/mockup-upload-form";
 import { WebviewWarning } from "@/components/webview-warning";
+import { useLanguage } from "@/lib/language-context";
 import { getPresetById, type PresetId } from "@/lib/presets";
+import type { GenerationVariant } from "@/lib/image-provider";
 
-interface UploadPageProps {
-  searchParams: Promise<{
-    file?: string;
-    preset?: string;
-    category?: string;
-    format?: string;
-    productName?: string;
-    variant?: "a" | "b" | "c" | "d";
-  }>;
-}
+export default function UploadPage() {
+  const { t } = useLanguage();
+  const searchParams = useSearchParams();
 
-export default async function UploadPage({ searchParams }: UploadPageProps) {
-  const params = await searchParams;
-  const sourceImageUrl = params.file ? `/api/uploads/${params.file}` : undefined;
-  const preset = getPresetById(params.preset ?? "")?.id ?? ("clean_studio" as PresetId);
-  const category = params.category ?? "";
-  const format = params.format ?? "1:1 square";
-  const productName = params.productName ?? "";
-  const variant = params.variant === "d" ? "d" : params.variant === "c" ? "c" : params.variant === "b" ? "b" : "a";
+  const fileParam = searchParams.get("file");
+  const sourceImageUrl = fileParam ? `/api/uploads/${fileParam}` : undefined;
+  const preset = getPresetById(searchParams.get("preset") ?? "")?.id ?? ("clean_studio" as PresetId);
+  const category = searchParams.get("category") ?? "";
+  const format = searchParams.get("format") ?? "1:1 square";
+  const productName = searchParams.get("productName") ?? "";
+  const variantParam = searchParams.get("variant");
+  const variant: GenerationVariant =
+    variantParam === "d" ? "d" : variantParam === "c" ? "c" : variantParam === "b" ? "b" : "a";
 
   return (
     <main className="min-h-screen bg-neutral-950 text-white">
@@ -31,14 +30,14 @@ export default async function UploadPage({ searchParams }: UploadPageProps) {
 
         <div>
           <Link href="/" className="text-sm text-neutral-400 hover:text-white">
-            ← Inicio
+            {t.upload.back}
           </Link>
         </div>
 
         <div className="max-w-2xl space-y-3">
-          <h1 className="text-4xl font-semibold tracking-tight">Sube tu producto</h1>
+          <h1 className="text-4xl font-semibold tracking-tight">{t.upload.title}</h1>
           <p className="text-base text-neutral-400">
-            Carga una imagen de tu producto, elige un preset y genera mockups listos para probar en tu tienda, anuncios o contenido.
+            {t.upload.description}
           </p>
         </div>
 
