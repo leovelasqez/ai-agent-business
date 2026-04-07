@@ -108,7 +108,7 @@ export async function runFalGeneration(input: RunGenerationInput): Promise<RunGe
         variant === "d"
           ? {
               prompt,
-              image_url: resolvedImageUrl,
+              image_urls: [resolvedImageUrl],
               output_format: String(config.defaults.output_format),
               num_images: Number(config.defaults.num_images),
               aspect_ratio: mapFormatToNanoBananaAspectRatio(input.format),
