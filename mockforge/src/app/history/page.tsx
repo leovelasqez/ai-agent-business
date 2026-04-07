@@ -92,8 +92,8 @@ export default async function HistoryPage() {
                   </div>
 
                   {/* Metadata */}
-                  <div className="flex flex-col gap-1.5 p-4">
-                    <div className="flex items-center justify-between gap-2">
+                  <div className="flex flex-col gap-2 p-4">
+                    <div className="flex items-start justify-between gap-2">
                       <span className="truncate text-sm font-medium text-white">
                         {gen.productName ?? "Sin nombre"}
                       </span>
@@ -112,11 +112,16 @@ export default async function HistoryPage() {
                         </span>
                       </div>
                     </div>
-                    <div className="text-xs text-neutral-500">{preset?.name ?? gen.preset}</div>
-                    {gen.category && (
-                      <div className="text-xs text-neutral-600">{gen.category}</div>
-                    )}
-                    <div className="mt-1 text-[11px] text-neutral-600">{formatDate(gen.createdAt)}</div>
+                    <div className="flex items-center gap-2 text-xs text-neutral-500">
+                      <span>{preset?.name ?? gen.preset}</span>
+                      {gen.category && (
+                        <>
+                          <span className="text-neutral-700">·</span>
+                          <span className="text-neutral-500">{gen.category}</span>
+                        </>
+                      )}
+                    </div>
+                    <div className="text-[11px] text-neutral-600">{formatDate(gen.createdAt)}</div>
                   </div>
                 </Link>
               );

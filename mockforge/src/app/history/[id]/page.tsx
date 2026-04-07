@@ -70,7 +70,7 @@ export default async function GenerationDetailPage({ params }: Props) {
                       download
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="absolute bottom-3 right-3 rounded-full bg-black/60 px-3 py-1.5 text-xs text-white opacity-70 backdrop-blur-sm transition hover:opacity-100"
+                      className="absolute bottom-3 right-3 rounded-full bg-black/60 px-3 py-1.5 text-xs text-white opacity-0 backdrop-blur-sm transition group-hover:opacity-100"
                     >
                       Descargar
                     </a>
@@ -133,16 +133,16 @@ export default async function GenerationDetailPage({ params }: Props) {
                   }
                 />
               </dl>
-            </div>
 
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
-              <p className="mb-3 text-[11px] uppercase tracking-[0.2em] text-neutral-500">Valoración</p>
-              <RatingButtons generationId={generation.id} initialRating={generation.rating} />
+              <div className="mt-5 border-t border-white/10 pt-4">
+                <p className="mb-3 text-[10px] uppercase tracking-[0.2em] text-neutral-500">¿Cómo quedó?</p>
+                <RatingButtons generationId={generation.id} initialRating={generation.rating} />
+              </div>
             </div>
 
             <Link
               href="/upload"
-              className="rounded-full border border-white/15 px-4 py-2.5 text-center text-sm text-white transition hover:border-white/30"
+              className="rounded-2xl bg-white px-4 py-2.5 text-center text-sm font-medium text-black transition hover:bg-neutral-200"
             >
               + Nueva generación
             </Link>
