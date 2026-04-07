@@ -29,13 +29,10 @@ export default async function UploadPage({ searchParams }: UploadPageProps) {
       <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-6 py-12">
         <SiteHeader />
 
-        <div className="flex items-center justify-between">
+        <div>
           <Link href="/" className="text-sm text-neutral-400 hover:text-white">
             ← Inicio
           </Link>
-          <span className="rounded-full border border-white/10 px-3 py-1 text-xs text-neutral-300">
-            Generación en vivo
-          </span>
         </div>
 
         <div className="max-w-2xl space-y-3">

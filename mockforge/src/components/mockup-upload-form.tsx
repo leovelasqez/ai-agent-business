@@ -165,18 +165,14 @@ export function MockupUploadForm({
             }}
           />
 
-          {effectiveSourceImageUrl ? (
+          {effectiveSourceImageUrl && !selectedSourceImageUrl ? (
             <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/10 p-4">
               <div className="mb-3 text-sm text-emerald-100">
-                {selectedSourceImageUrl
-                  ? "Imagen subida correctamente. Ya puedes generar mockups con esta versión."
-                  : "Ya hay una imagen precargada desde el link. Puedes generar directo o reemplazarla subiendo otra."}
+                Imagen precargada. Puedes generar directo o reemplazarla subiendo otra.
               </div>
               <div className="relative aspect-square max-w-sm overflow-hidden rounded-3xl border border-white/10 bg-black/20">
                 <Image src={effectiveSourceImageUrl} alt="Preloaded source image" fill className="object-cover" unoptimized />
               </div>
-              <div className="mt-3 text-xs text-emerald-200">Fuente actual: {effectiveSourceImageUrl}</div>
-              {selectedFileName ? <div className="mt-1 text-xs text-emerald-300">Archivo: {selectedFileName}</div> : null}
             </div>
           ) : null}
 
