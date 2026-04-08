@@ -1,3 +1,4 @@
+// Managed by MockForge i18n system
 export type Language = "en" | "es";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
