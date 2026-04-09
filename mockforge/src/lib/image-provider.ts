@@ -9,6 +9,8 @@ export interface RunGenerationInput {
   format?: string;
   sourceImageUrl?: string;
   variant?: GenerationVariant;
+  customModel?: string;
+  customPrompt?: string;
 }
 
 export interface RunGenerationResult {

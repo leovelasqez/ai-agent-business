@@ -22,6 +22,9 @@ function ResultsPageInner() {
   const compareVariantsParam = searchParams.get("compareVariants");
   const variantParam = searchParams.get("variant");
 
+  const customModel = searchParams.get("customModel") ?? undefined;
+  const customPrompt = searchParams.get("customPrompt") ?? undefined;
+
   const compareVariants = compareVariantsParam
     ? (compareVariantsParam
         .split(",")
@@ -60,6 +63,8 @@ function ResultsPageInner() {
           sourceImageUrl={sourceImageUrl}
           variant={variant}
           compareVariants={compareVariants && compareVariants.length >= 2 ? compareVariants : null}
+          customModel={customModel}
+          customPrompt={customPrompt}
         />
       </div>
     </main>

@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mapFormatToResolutionMode, mapFormatToGptImageSize, mapFormatToNanoBananaAspectRatio, DEFAULT_MODEL_D } from "@/lib/model-config";
+import { mapFormatToResolutionMode, mapFormatToGptImageSize, mapFormatToNanoBananaAspectRatio, MODEL_A } from "@/lib/model-config";
 
 function run() {
   // mapFormatToResolutionMode
@@ -27,8 +27,8 @@ function run() {
   assert.equal(mapFormatToNanoBananaAspectRatio("1:1 square"), "1:1");
   assert.equal(mapFormatToNanoBananaAspectRatio(undefined), "1:1");
 
-  // DEFAULT_MODEL_D env fallback
-  assert.equal(DEFAULT_MODEL_D, process.env.FAL_MODEL_D || "fal-ai/nano-banana-2/edit");
+  // MODEL_A (formerly DEFAULT_MODEL_D) is now Nano Banana 2
+  assert.equal(MODEL_A, "fal-ai/nano-banana-2/edit");
 
   console.log("model-config test passed");
 }

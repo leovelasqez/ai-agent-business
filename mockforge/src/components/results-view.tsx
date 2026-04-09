@@ -17,6 +17,8 @@ interface ResultsViewProps {
   sourceImageUrl?: string;
   variant?: GenerationVariant;
   compareVariants?: GenerationVariant[] | null;
+  customModel?: string;
+  customPrompt?: string;
 }
 
 interface GenerateResponse {
@@ -39,10 +41,10 @@ interface GenerateResponse {
 // ── Single-variant mode ──────────────────────────────────────────────────────
 
 const VARIANT_LABELS: Record<string, string> = {
-  a: "A · FLUX Kontext Dev",
-  b: "B · FLUX Kontext Pro",
-  c: "C · GPT Image 1 via fal",
-  d: "D · Nano Banana 2",
+  a: "A · Nano Banana 2",
+  b: "B · GPT Image",
+  c: "C · FLUX.2 Pro",
+  d: "D · Personalizado",
 };
 
 async function callGenerate(body: {
@@ -52,6 +54,8 @@ async function callGenerate(body: {
   productName: string;
   sourceImageUrl?: string;
   variant: string;
+  customModel?: string;
+  customPrompt?: string;
 }): Promise<GenerateResponse> {
   const response = await fetch("/api/generate", {
     method: "POST",
@@ -205,6 +209,8 @@ export function ResultsView({
   sourceImageUrl,
   variant = "a",
   compareVariants,
+  customModel,
+  customPrompt,
 }: ResultsViewProps) {
   const { t } = useLanguage();
   const rv = t.resultsView;
@@ -251,7 +257,7 @@ export function ResultsView({
       setError(null);
 
       try {
-        const json = await callGenerate({ preset, category, format, productName, sourceImageUrl, variant });
+        const json = await callGenerate({ preset, category, format, productName, sourceImageUrl, variant, customModel, customPrompt });
 
         if (!json.ok || !json.data?.previewUrls?.length) {
           throw new Error(json.details || json.message || "Generation failed");
@@ -283,7 +289,7 @@ export function ResultsView({
 
     async function generateVariant(v: GenerationVariant, index: number) {
       try {
-        const json = await callGenerate({ preset, category, format, productName, sourceImageUrl, variant: v });
+        const json = await callGenerate({ preset, category, format, productName, sourceImageUrl, variant: v, customModel: v === "d" ? customModel : undefined, customPrompt: v === "d" ? customPrompt : undefined });
 
         if (isCancelled) return;
 

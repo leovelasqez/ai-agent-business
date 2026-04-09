@@ -35,6 +35,8 @@ export async function POST(request: Request) {
       productName,
       sourceImageUrl,
       variant,
+      customModel: body?.customModel,
+      customPrompt: body?.customPrompt,
     });
 
     // Record to DB if Supabase is configured (non-fatal if it fails)

@@ -112,10 +112,10 @@ export const translations: Record<Language, Record<string, any>> = {
     // Upload form
     form: {
       variants: [
-        { label: "A · FLUX Dev", description: "Faster and cheaper, but more prone to distortion." },
-        { label: "B · FLUX Pro", description: "More expensive, should preserve the product better." },
-        { label: "C · GPT Image 1", description: "Via fal, focused on editing without destroying the product." },
-        { label: "D · Nano Banana 2", description: "Image editing with high fidelity to the product." },
+        { label: "A · Nano Banana 2", description: "Fast generation, high product fidelity." },
+        { label: "B · GPT Image", description: "Precise editing, great with text and layouts." },
+        { label: "C · FLUX.2 Pro", description: "Maximum realism, professional quality." },
+        { label: "D · Personalizado", description: "Choose your model and write your own prompt." },
       ],
       preloadedImage: "Preloaded image. You can generate directly or replace it by uploading another.",
       productName: "Product name",
@@ -127,6 +127,7 @@ export const translations: Record<Language, Record<string, any>> = {
         square: "1:1 Square",
         portrait: "4:5 Portrait",
         story: "9:16 Story (Instagram)",
+        landscape: "16:9 Landscape (TikTok)",
       },
       modelMode: "Model mode",
       comparingVariants: "Comparing variants",
@@ -139,6 +140,11 @@ export const translations: Record<Language, Record<string, any>> = {
       submitUploading: "Uploading image...",
       submitCompare: "Compare {n} variants",
       submitGenerate: "Generate mockups",
+      customModel: "Model",
+      customModelPlaceholder: "Select a model",
+      customPrompt: "Prompt",
+      customPromptPlaceholder: "Describe the style you want...",
+      customPromptHint: "Your prompt completely replaces the automatic one.",
     },
 
     // Results view
@@ -345,10 +351,10 @@ export const translations: Record<Language, Record<string, any>> = {
     // Upload form
     form: {
       variants: [
-        { label: "A · FLUX Dev", description: "Más rápido y barato, pero deforma más." },
-        { label: "B · FLUX Pro", description: "Más caro, debería preservar mejor el producto." },
-        { label: "C · GPT Image 1", description: "Vía fal, orientado a editar sin destruir el producto." },
-        { label: "D · Nano Banana 2", description: "Edición de imagen con alta fidelidad al producto." },
+        { label: "A · Nano Banana 2", description: "Generación rápida, alta fidelidad al producto." },
+        { label: "B · GPT Image", description: "Edición precisa, bueno con texto y layouts." },
+        { label: "C · FLUX.2 Pro", description: "Máximo realismo, calidad profesional." },
+        { label: "D · Personalizado", description: "Elige tu modelo y escribe tu propio prompt." },
       ],
       preloadedImage: "Imagen precargada. Puedes generar directo o reemplazarla subiendo otra.",
       productName: "Nombre del producto",
@@ -360,6 +366,7 @@ export const translations: Record<Language, Record<string, any>> = {
         square: "1:1 Cuadrado",
         portrait: "4:5 Vertical",
         story: "9:16 Story (Instagram)",
+        landscape: "16:9 Horizontal (TikTok)",
       },
       modelMode: "Modo de modelo",
       comparingVariants: "Comparando variantes",
@@ -372,6 +379,11 @@ export const translations: Record<Language, Record<string, any>> = {
       submitUploading: "Subiendo imagen...",
       submitCompare: "Comparar {n} variantes",
       submitGenerate: "Generar mockups",
+      customModel: "Modelo",
+      customModelPlaceholder: "Selecciona un modelo",
+      customPrompt: "Prompt",
+      customPromptPlaceholder: "Describe el estilo que quieres...",
+      customPromptHint: "Tu prompt reemplaza completamente el automático.",
     },
 
     // Results view

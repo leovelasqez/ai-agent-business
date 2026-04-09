@@ -34,6 +34,14 @@ export const replicatePresetConfig: Record<PresetId, ReplicateModelConfig> = {
       safety_tolerance: 2,
     },
   },
+  custom: {
+    model: DEFAULT_MODEL,
+    defaults: {
+      output_format: "jpg",
+      aspect_ratio: "1:1",
+      safety_tolerance: 2,
+    },
+  },
 };
 
 export function mapFormatToAspectRatio(format?: string) {

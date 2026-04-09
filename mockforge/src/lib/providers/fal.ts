@@ -3,7 +3,15 @@ import path from "node:path";
 import { fal } from "@fal-ai/client";
 import { downloadAndSaveOutput, saveOutputBase64 } from "@/lib/storage-provider";
 import { buildPrompt } from "@/lib/prompt-builder";
-import { DEFAULT_MODEL_D, mapFormatToGptImageSize, mapFormatToNanoBananaAspectRatio, mapFormatToResolutionMode, presetModelConfig } from "@/lib/model-config";
+import {
+  MODEL_A,
+  MODEL_B,
+  MODEL_C,
+  CURATED_MODELS,
+  mapFormatToFlux2ProImageSize,
+  mapFormatToGptImageSize,
+  mapFormatToNanoBananaAspectRatio,
+} from "@/lib/model-config";
 import type { RunGenerationInput, RunGenerationResult } from "@/lib/image-provider";
 
 interface FalImageOutput {
@@ -61,80 +69,95 @@ async function resolveFalImageUrl(sourceImageUrl?: string) {
   return new URL(sourceImageUrl, baseUrl).toString();
 }
 
+function resolveVariantModel(variant: "a" | "b" | "c" | "d", customModel?: string): string {
+  if (variant === "d") {
+    if (customModel) return customModel;
+    return MODEL_A;
+  }
+  if (variant === "b") return MODEL_B;
+  if (variant === "c") return MODEL_C;
+  return MODEL_A;
+}
+
+function getEffectiveVariantForModel(variant: "a" | "b" | "c" | "d", customModel?: string): "a" | "b" | "c" {
+  if (variant === "d" && customModel) {
+    const found = CURATED_MODELS.find((m) => m.id === customModel);
+    return (found?.variant ?? "a") as "a" | "b" | "c";
+  }
+  if (variant === "b") return "b";
+  if (variant === "c") return "c";
+  return "a";
+}
+
+function buildFalInput(
+  effectiveVariant: "a" | "b" | "c",
+  prompt: string,
+  resolvedImageUrl: string,
+  format: string | undefined,
+) {
+  if (effectiveVariant === "b") {
+    return {
+      prompt,
+      image_urls: [resolvedImageUrl],
+      input_fidelity: "high",
+      output_format: "jpeg",
+      num_images: 1,
+      quality: "high",
+      image_size: mapFormatToGptImageSize(format),
+    };
+  }
+
+  if (effectiveVariant === "c") {
+    return {
+      prompt,
+      image_urls: [resolvedImageUrl],
+      output_format: "jpeg",
+      image_size: mapFormatToFlux2ProImageSize(format),
+      enable_safety_checker: true,
+    };
+  }
+
+  // variant "a" — Nano Banana 2
+  return {
+    prompt,
+    image_urls: [resolvedImageUrl],
+    output_format: "jpeg",
+    num_images: 1,
+    aspect_ratio: mapFormatToNanoBananaAspectRatio(format),
+    resolution: "1K",
+  };
+}
+
 export async function runFalGeneration(input: RunGenerationInput): Promise<RunGenerationResult> {
   fal.config({
     credentials: getFalKey(),
   });
+
+  const variant = input.variant === "d" ? "d" : input.variant === "c" ? "c" : input.variant === "b" ? "b" : "a";
 
   const prompt = buildPrompt({
     preset: input.preset,
     category: input.category,
     productName: input.productName,
     format: input.format,
+    customPrompt: input.customPrompt,
   });
 
-  const variant = input.variant === "d" ? "d" : input.variant === "c" ? "c" : input.variant === "b" ? "b" : "a";
-  const config =
-    variant === "d"
-      ? {
-          model: DEFAULT_MODEL_D,
-          defaults: {
-            output_format: "jpeg",
-            num_images: 1,
-            resolution: "1K",
-          },
-        }
-      : variant === "c"
-        ? {
-            model: process.env.FAL_MODEL_C || "fal-ai/gpt-image-1/edit-image",
-            defaults: {
-              output_format: "jpeg",
-              num_images: 1,
-              quality: "high",
-            },
-          }
-        : presetModelConfig[input.preset][variant];
+  const model = resolveVariantModel(variant, input.customModel);
+  const effectiveVariant = getEffectiveVariantForModel(variant, input.customModel);
   const resolvedImageUrl = await resolveFalImageUrl(input.sourceImageUrl);
 
   if (!resolvedImageUrl) {
     throw new Error("sourceImageUrl is required for fal image editing");
   }
 
+  const falInput = buildFalInput(effectiveVariant, prompt, resolvedImageUrl, input.format);
+
   let result;
 
   try {
-    result = await fal.subscribe(config.model, {
-      input:
-        variant === "d"
-          ? {
-              prompt,
-              image_urls: [resolvedImageUrl],
-              output_format: String(config.defaults.output_format),
-              num_images: Number(config.defaults.num_images),
-              aspect_ratio: mapFormatToNanoBananaAspectRatio(input.format),
-              resolution: String(config.defaults.resolution),
-            }
-          : variant === "c"
-            ? {
-                prompt,
-                image_urls: [resolvedImageUrl],
-                input_fidelity: "high",
-                output_format: String(config.defaults.output_format),
-                num_images: Number(config.defaults.num_images),
-                quality: String(config.defaults.quality),
-                image_size: mapFormatToGptImageSize(input.format),
-              }
-            : {
-                prompt,
-                image_url: resolvedImageUrl,
-                output_format: String(config.defaults.output_format),
-                resolution_mode: mapFormatToResolutionMode(input.format) ?? String(config.defaults.resolution_mode),
-                guidance_scale: Number(config.defaults.guidance_scale),
-                num_inference_steps: Number(config.defaults.num_inference_steps),
-                num_images: Number(config.defaults.num_images),
-                enable_safety_checker: Boolean(config.defaults.enable_safety_checker),
-                acceleration: String(config.defaults.acceleration),
-              },
+    result = await fal.subscribe(model, {
+      input: falInput,
       logs: true,
     });
   } catch (error) {
@@ -166,6 +189,15 @@ export async function runFalGeneration(input: RunGenerationInput): Promise<RunGe
     throw new Error("fal returned no output images");
   }
 
+  const variantLabel =
+    variant === "d"
+      ? "D · Personalizado"
+      : variant === "c"
+        ? "C · FLUX.2 Pro"
+        : variant === "b"
+          ? "B · GPT Image"
+          : "A · Nano Banana 2";
+
   return {
     provider: "fal",
     mode: "live",
@@ -174,15 +206,8 @@ export async function runFalGeneration(input: RunGenerationInput): Promise<RunGe
     previewUrls: normalizedPreviewUrls,
     status: "completed",
     rawOutput: data,
-    model: config.model,
+    model,
     variant,
-    variantLabel:
-      variant === "d"
-        ? "D · Nano Banana 2"
-        : variant === "c"
-          ? "C · GPT Image 1 via fal"
-          : variant === "b"
-            ? "B · FLUX Kontext Pro"
-            : "A · FLUX Kontext Dev",
+    variantLabel,
   };
 }

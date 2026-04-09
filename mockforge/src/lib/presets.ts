@@ -14,6 +14,11 @@ export const PRESETS = [
     name: "Ad Creative",
     description: "Composición más llamativa para marketing y ads.",
   },
+  {
+    id: "custom",
+    name: "Personalizado",
+    description: "Escribe tu propio estilo con lenguaje natural.",
+  },
 ] as const;
 
 export type PresetId = (typeof PRESETS)[number]["id"];

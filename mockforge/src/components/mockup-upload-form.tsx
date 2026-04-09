@@ -5,6 +5,7 @@ import { useCallback, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { FilePicker } from "@/components/file-picker";
 import { PRESETS, type PresetId } from "@/lib/presets";
+import { CURATED_MODELS } from "@/lib/model-config";
 import { useLanguage } from "@/lib/language-context";
 import type { GenerationVariant } from "@/lib/image-provider";
 
@@ -41,6 +42,8 @@ export function MockupUploadForm({
   const [format, setFormat] = useState(initialFormat);
   const [preset, setPreset] = useState<PresetId>(initialPreset);
   const [variant, setVariant] = useState<GenerationVariant>(initialVariant);
+  const [customModel, setCustomModel] = useState<string>(CURATED_MODELS[0].id);
+  const [customPrompt, setCustomPrompt] = useState<string>("");
   const [compareMode, setCompareMode] = useState(false);
   const [compareVariants, setCompareVariants] = useState<Set<GenerationVariant>>(
     new Set(["b", "c", "d"]),
@@ -139,6 +142,11 @@ export function MockupUploadForm({
         params.set("variant", variant);
       }
 
+      if (variant === "d" || (compareMode && compareVariants.has("d"))) {
+        params.set("customModel", customModel);
+        if (customPrompt.trim()) params.set("customPrompt", customPrompt.trim());
+      }
+
       router.push(`/results?${params.toString()}`);
     } catch (submitError) {
       const message = submitError instanceof Error ? submitError.message : "Unknown upload error";
@@ -217,6 +225,7 @@ export function MockupUploadForm({
               <option value="1:1 square">{f.formatOptions.square}</option>
               <option value="4:5 portrait">{f.formatOptions.portrait}</option>
               <option value="9:16 story">{f.formatOptions.story}</option>
+              <option value="16:9 landscape">{f.formatOptions.landscape}</option>
             </select>
           </div>
 
@@ -280,13 +289,42 @@ export function MockupUploadForm({
               </div>
             )}
           </div>
+
+          {/* Variant D controls */}
+          {(variant === "d" || (compareMode && compareVariants.has("d"))) && (
+          <div className="space-y-4 rounded-2xl border border-white/10 bg-white/5 p-4">
+            <div>
+              <label className="mb-2 block text-sm text-neutral-300">{f.customModel}</label>
+              <select
+                value={customModel}
+                onChange={(event) => setCustomModel(event.target.value)}
+                className="w-full rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-sm outline-none"
+              >
+                {CURATED_MODELS.map((m) => (
+                  <option key={m.id} value={m.id}>{m.label}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="mb-2 block text-sm text-neutral-300">{f.customPrompt}</label>
+              <textarea
+                value={customPrompt}
+                onChange={(event) => setCustomPrompt(event.target.value)}
+                rows={3}
+                className="w-full rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-sm outline-none placeholder:text-neutral-600"
+                placeholder={String(f.customPromptPlaceholder)}
+              />
+              <p className="mt-1 text-xs text-neutral-500">{f.customPromptHint}</p>
+            </div>
+          </div>
+          )}
         </div>
       </section>
 
       <aside className="rounded-3xl border border-white/10 bg-white/5 p-6">
         <h2 className="text-lg font-medium">{f.choosePreset}</h2>
         <div className="mt-4 space-y-3">
-          {PRESETS.map((item) => (
+          {PRESETS.filter((item) => variant === "d" || item.id !== "custom").map((item) => (
             <label
               key={item.id}
               className="flex cursor-pointer items-start gap-3 rounded-2xl border border-white/10 bg-black/20 p-4 transition hover:border-white/20"
