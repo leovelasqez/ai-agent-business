@@ -38,8 +38,6 @@ interface GenerateResponse {
   };
 }
 
-// ── Single-variant mode ──────────────────────────────────────────────────────
-
 const VARIANT_LABELS: Record<string, string> = {
   a: "A · Nano Banana 2",
   b: "B · GPT Image",
@@ -65,8 +63,6 @@ async function callGenerate(body: {
   return response.json() as Promise<GenerateResponse>;
 }
 
-// ── Compare mode types ────────────────────────────────────────────────────────
-
 interface VariantResult {
   variant: GenerationVariant;
   variantLabel: string;
@@ -76,7 +72,7 @@ interface VariantResult {
   error: string | null;
 }
 
-// ── Sub-components ────────────────────────────────────────────────────────────
+// ── Image card ────────────────────────────────────────────────────────────────
 
 function ImageCard({
   url,
@@ -94,31 +90,52 @@ function ImageCard({
   previewReadyLabel: string;
 }) {
   return (
-    <div className="group overflow-hidden rounded-[1.5rem] border border-white/10 bg-black/20">
+    <div className="group overflow-hidden rounded-2xl border border-white/[0.08] bg-black/20 transition hover:border-white/[0.14]">
       <div className="relative aspect-square overflow-hidden">
         <Image
           src={url}
           alt={`Generated mockup ${index + 1}`}
           fill
-          className="object-contain transition duration-500 group-hover:scale-[1.03]"
+          className="object-contain transition duration-500 group-hover:scale-[1.02]"
           unoptimized
         />
+        <a
+          href={url}
+          target="_blank"
+          rel="noreferrer"
+          download
+          className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full bg-black/60 text-white opacity-0 backdrop-blur-sm transition group-hover:opacity-100 hover:bg-black/80"
+          title={downloadLabel}
+        >
+          <svg
+            width="13"
+            height="13"
+            viewBox="0 0 13 13"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            aria-hidden="true"
+          >
+            <path d="M6.5 2v7M3.5 6l3 3 3-3" strokeLinecap="round" strokeLinejoin="round" />
+            <path d="M1.5 10.5h10" strokeLinecap="round" />
+          </svg>
+        </a>
       </div>
-      <div className="flex items-center justify-between px-4 py-3">
+      <div className="flex items-center justify-between px-4 py-3.5">
         <div>
-          <div className="text-sm font-medium text-white">{mockupLabel} {index + 1}</div>
-          <div className="mt-0.5 text-xs text-white/50">{previewReadyLabel}</div>
+          <div className="text-sm font-semibold text-white">
+            {mockupLabel} {index + 1}
+          </div>
+          <div className="mt-0.5 text-xs text-white/30">{previewReadyLabel}</div>
         </div>
         <div className="flex items-center gap-2">
-          {generationId ? (
-            <RatingButtons generationId={generationId} />
-          ) : null}
+          {generationId ? <RatingButtons generationId={generationId} /> : null}
           <a
             href={url}
             target="_blank"
             rel="noreferrer"
             download
-            className="rounded-xl border border-white/15 px-3 py-1.5 text-xs font-medium text-white transition hover:border-white/30 hover:bg-white/10"
+            className="rounded-xl border border-white/[0.1] px-3 py-1.5 text-xs font-medium text-white/60 transition hover:border-white/25 hover:bg-white/[0.06] hover:text-white"
           >
             {downloadLabel}
           </a>
@@ -128,7 +145,7 @@ function ImageCard({
   );
 }
 
-// ── Compare grid card ─────────────────────────────────────────────────────────
+// ── Compare card ──────────────────────────────────────────────────────────────
 
 function CompareCard({
   result,
@@ -140,19 +157,21 @@ function CompareCard({
   rv: ReturnType<typeof useLanguage>["t"]["resultsView"];
 }) {
   return (
-    <div className="rounded-[2rem] border border-white/10 bg-white/5 p-5">
-      <div className="mb-4 flex items-center justify-between gap-3">
+    <div className="overflow-hidden rounded-2xl border border-white/[0.08] bg-white/[0.025]">
+      <div className="flex items-center justify-between gap-3 border-b border-white/[0.06] px-5 py-4">
         <div>
-          <div className="text-xs uppercase tracking-[0.2em] text-neutral-500">{rv.variantLabel}</div>
-          <div className="mt-1 text-base font-medium text-white">{result.variantLabel}</div>
+          <div className="text-[10px] font-semibold uppercase tracking-[0.22em] text-white/25">
+            {rv.variantLabel}
+          </div>
+          <div className="mt-1 text-sm font-bold text-white">{result.variantLabel}</div>
         </div>
         <div
-          className={`rounded-full px-3 py-1 text-xs font-medium ${
+          className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${
             result.status === "completed"
-              ? "bg-emerald-500/15 text-emerald-200"
+              ? "bg-emerald-500/15 text-emerald-300"
               : result.status === "failed"
-                ? "bg-red-500/15 text-red-200"
-                : "bg-white/10 text-neutral-300"
+                ? "bg-red-500/15 text-red-300"
+                : "bg-white/[0.06] text-white/35"
           }`}
         >
           {result.status === "processing"
@@ -163,38 +182,51 @@ function CompareCard({
         </div>
       </div>
 
-      {result.status === "processing" ? (
-        <div className="flex aspect-square items-center justify-center rounded-[1.5rem] border border-white/10 bg-black/20">
-          <div className="h-10 w-10 animate-spin rounded-full border-4 border-white/15 border-t-white" />
-        </div>
-      ) : result.status === "failed" ? (
-        <div className="flex aspect-square flex-col items-center justify-center gap-3 rounded-[1.5rem] border border-red-500/20 bg-red-500/10 p-6 text-center">
-          <p className="text-sm text-red-200">{result.error}</p>
-        </div>
-      ) : (
-        <div className="grid gap-3">
-          {result.previewUrls.map((url, i) => (
-            <ImageCard
-              key={`${url}-${i}`}
-              url={url}
-              index={i}
-              generationId={result.generationId}
-              downloadLabel={rv.download}
-              mockupLabel={rv.mockupLabel}
-              previewReadyLabel={rv.previewReady}
-            />
-          ))}
-        </div>
-      )}
-
-      {result.status === "completed" && sourceImageUrl ? (
-        <div className="mt-4">
-          <div className="mb-2 text-xs text-neutral-500">{rv.originalLabel}</div>
-          <div className="relative aspect-square overflow-hidden rounded-[1.5rem] border border-white/10 bg-black/20">
-            <Image src={sourceImageUrl} alt={rv.sourceImageTitle} fill className="object-cover" unoptimized />
+      <div className="p-5">
+        {result.status === "processing" ? (
+          <div className="flex aspect-square items-center justify-center rounded-xl border border-white/[0.06] bg-black/30">
+            <div className="flex flex-col items-center gap-4">
+              <div className="h-10 w-10 animate-spin rounded-full border-4 border-white/10 border-t-lime-400" />
+              <p className="text-xs text-white/25">Generating...</p>
+            </div>
           </div>
-        </div>
-      ) : null}
+        ) : result.status === "failed" ? (
+          <div className="flex aspect-square flex-col items-center justify-center gap-3 rounded-xl border border-red-500/15 bg-red-500/[0.06] p-6 text-center">
+            <p className="text-sm text-red-300">{result.error}</p>
+          </div>
+        ) : (
+          <div className="grid gap-3">
+            {result.previewUrls.map((url, i) => (
+              <ImageCard
+                key={`${url}-${i}`}
+                url={url}
+                index={i}
+                generationId={result.generationId}
+                downloadLabel={rv.download}
+                mockupLabel={rv.mockupLabel}
+                previewReadyLabel={rv.previewReady}
+              />
+            ))}
+          </div>
+        )}
+
+        {result.status === "completed" && sourceImageUrl ? (
+          <div className="mt-4">
+            <div className="mb-2 text-[10px] font-semibold uppercase tracking-[0.22em] text-white/25">
+              {rv.originalLabel}
+            </div>
+            <div className="relative aspect-square overflow-hidden rounded-xl border border-white/[0.06] bg-black/30">
+              <Image
+                src={sourceImageUrl}
+                alt={rv.sourceImageTitle}
+                fill
+                className="object-cover"
+                unoptimized
+              />
+            </div>
+          </div>
+        ) : null}
+      </div>
     </div>
   );
 }
@@ -222,15 +254,14 @@ export function ResultsView({
     return raw;
   }
 
-  // ── Single mode state ──
   const [status, setStatus] = useState<GenerationStatus>("processing");
   const [previewUrls, setPreviewUrls] = useState<string[]>([]);
   const [generationId, setGenerationId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const defaultVariantLabel = VARIANT_LABELS[variant] ?? variant;
-  const [variantLabel, setVariantLabel] = useState<string>(defaultVariantLabel);
+  const [variantLabel, setVariantLabel] =
+    useState<string>(defaultVariantLabel);
 
-  // ── Compare mode state ──
   const [variantResults, setVariantResults] = useState<VariantResult[]>(() =>
     compareVariants
       ? compareVariants.map((v) => ({
@@ -244,9 +275,10 @@ export function ResultsView({
       : [],
   );
 
-  const isCompareMode = Boolean(compareVariants && compareVariants.length >= 2);
+  const isCompareMode = Boolean(
+    compareVariants && compareVariants.length >= 2,
+  );
 
-  // ── Single-variant generation ──
   useEffect(() => {
     if (isCompareMode) return;
 
@@ -257,7 +289,16 @@ export function ResultsView({
       setError(null);
 
       try {
-        const json = await callGenerate({ preset, category, format, productName, sourceImageUrl, variant, customModel, customPrompt });
+        const json = await callGenerate({
+          preset,
+          category,
+          format,
+          productName,
+          sourceImageUrl,
+          variant,
+          customModel,
+          customPrompt,
+        });
 
         if (!json.ok || !json.data?.previewUrls?.length) {
           throw new Error(json.details || json.message || "Generation failed");
@@ -271,17 +312,28 @@ export function ResultsView({
         setStatus("completed");
       } catch (err) {
         if (isCancelled) return;
-        const raw = err instanceof Error ? err.message : "Unknown generation error";
+        const raw =
+          err instanceof Error ? err.message : "Unknown generation error";
         setError(friendlyError(raw));
         setStatus("failed");
       }
     }
 
     generate();
-    return () => { isCancelled = true; };
-  }, [preset, category, format, productName, sourceImageUrl, variant, isCompareMode, defaultVariantLabel]);
+    return () => {
+      isCancelled = true;
+    };
+  }, [
+    preset,
+    category,
+    format,
+    productName,
+    sourceImageUrl,
+    variant,
+    isCompareMode,
+    defaultVariantLabel,
+  ]);
 
-  // ── Compare mode: generate each variant independently ──
   useEffect(() => {
     if (!isCompareMode || !compareVariants) return;
 
@@ -289,7 +341,16 @@ export function ResultsView({
 
     async function generateVariant(v: GenerationVariant, index: number) {
       try {
-        const json = await callGenerate({ preset, category, format, productName, sourceImageUrl, variant: v, customModel: v === "d" ? customModel : undefined, customPrompt: v === "d" ? customPrompt : undefined });
+        const json = await callGenerate({
+          preset,
+          category,
+          format,
+          productName,
+          sourceImageUrl,
+          variant: v,
+          customModel: v === "d" ? customModel : undefined,
+          customPrompt: v === "d" ? customPrompt : undefined,
+        });
 
         if (isCancelled) return;
 
@@ -305,17 +366,21 @@ export function ResultsView({
                   status: "completed",
                   previewUrls: json.data!.previewUrls,
                   generationId: json.data!.generationId ?? null,
-                  variantLabel: json.data!.variantLabel || r.variantLabel,
+                  variantLabel:
+                    json.data!.variantLabel || r.variantLabel,
                 }
               : r,
           ),
         );
       } catch (err) {
         if (isCancelled) return;
-        const raw = err instanceof Error ? err.message : "Unknown generation error";
+        const raw =
+          err instanceof Error ? err.message : "Unknown generation error";
         setVariantResults((prev) =>
           prev.map((r, i) =>
-            i === index ? { ...r, status: "failed", error: friendlyError(raw) } : r,
+            i === index
+              ? { ...r, status: "failed", error: friendlyError(raw) }
+              : r,
           ),
         );
       }
@@ -323,8 +388,18 @@ export function ResultsView({
 
     void Promise.all(compareVariants.map((v, i) => generateVariant(v, i)));
 
-    return () => { isCancelled = true; };
-  }, [isCompareMode, compareVariants, preset, category, format, productName, sourceImageUrl]);
+    return () => {
+      isCancelled = true;
+    };
+  }, [
+    isCompareMode,
+    compareVariants,
+    preset,
+    category,
+    format,
+    productName,
+    sourceImageUrl,
+  ]);
 
   const title = useMemo(() => {
     if (isCompareMode) {
@@ -352,26 +427,32 @@ export function ResultsView({
     : status;
 
   const primaryPreview = isCompareMode
-    ? variantResults.find((r) => r.previewUrls.length > 0)?.previewUrls[0] ?? null
+    ? variantResults.find((r) => r.previewUrls.length > 0)?.previewUrls[0] ??
+      null
     : previewUrls[0] ?? null;
 
   return (
-    <div className="space-y-8">
-      <section className="overflow-hidden rounded-[2rem] border border-white/10 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.14),transparent_28%),linear-gradient(135deg,rgba(255,255,255,0.06),rgba(255,255,255,0.02))] p-8 md:p-10">
-        <div className="grid gap-8 lg:grid-cols-[1.15fr_0.85fr] lg:items-end">
+    <div className="space-y-6">
+      {/* ── Status header ── */}
+      <section className="overflow-hidden rounded-2xl border border-white/[0.08] bg-white/[0.025] p-7 md:p-9">
+        <div className="grid gap-8 lg:grid-cols-[1.15fr_0.85fr] lg:items-center">
           <div className="space-y-5">
-            <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs uppercase tracking-[0.22em] text-neutral-300">
+            <div className="inline-flex items-center gap-2 rounded-full border border-white/[0.08] bg-white/[0.04] px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.2em] text-white/40">
               {isCompareMode ? rv.badge.compare : rv.badge.single}
             </div>
-            <div className="space-y-3">
-              <h1 className="text-4xl font-semibold tracking-tight md:text-5xl">{title}</h1>
-              <p className="max-w-2xl text-base leading-7 text-neutral-300 md:text-lg">{subtitle}</p>
+            <div className="space-y-2">
+              <h1 className="text-3xl font-black tracking-tight md:text-4xl">
+                {title}
+              </h1>
+              <p className="max-w-xl text-sm leading-7 text-white/40 md:text-base">
+                {subtitle}
+              </p>
             </div>
 
             <div className="flex flex-col gap-3 sm:flex-row">
               <Link
                 href="/upload"
-                className="inline-flex items-center justify-center rounded-2xl border border-white/15 px-5 py-3 text-sm font-medium text-white transition hover:border-white/30"
+                className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-white/[0.1] px-5 py-2.5 text-sm font-medium text-white/70 transition hover:border-white/20 hover:bg-white/[0.04] hover:text-white"
               >
                 {rv.createAnother}
               </Link>
@@ -380,7 +461,7 @@ export function ResultsView({
                   href={primaryPreview}
                   target="_blank"
                   rel="noreferrer"
-                  className="inline-flex items-center justify-center rounded-2xl bg-white px-5 py-3 text-sm font-medium text-black transition hover:bg-neutral-200"
+                  className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-lime-400 px-5 py-2.5 text-sm font-bold text-black transition hover:bg-lime-300"
                 >
                   {rv.openBest}
                 </a>
@@ -388,29 +469,44 @@ export function ResultsView({
             </div>
           </div>
 
-          <div className="rounded-[2rem] border border-white/10 bg-black/20 p-5 backdrop-blur-sm">
-            <div className="mb-4 flex items-center justify-between">
+          <div className="rounded-xl border border-white/[0.07] bg-black/30 p-5">
+            <div className="mb-4 flex items-center justify-between gap-2">
               <div>
-                <div className="text-xs uppercase tracking-[0.2em] text-neutral-500">{rv.statusLabel}</div>
-                <div className="mt-2 text-lg font-medium text-white">
-                  {overallStatus === "processing" ? rv.statusProcessing : rv.statusCompleted}
+                <div className="text-[10px] font-semibold uppercase tracking-[0.22em] text-white/20">
+                  {rv.statusLabel}
+                </div>
+                <div className="mt-1.5 font-bold text-white">
+                  {overallStatus === "processing"
+                    ? rv.statusProcessing
+                    : rv.statusCompleted}
                 </div>
               </div>
               <div className="flex flex-col items-end gap-2">
                 <div
-                  className={`rounded-full px-3 py-1 text-xs font-medium ${
+                  className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${
                     overallStatus === "completed"
-                      ? "bg-emerald-500/15 text-emerald-200"
-                      : "bg-white/10 text-neutral-200"
+                      ? "bg-emerald-500/15 text-emerald-300"
+                      : "bg-white/[0.06] text-white/35"
                   }`}
                 >
-                  {overallStatus === "processing" ? rv.badgeProcessing : rv.badgeReady}
+                  {overallStatus === "processing" && (
+                    <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-current" />
+                  )}
+                  {overallStatus === "processing"
+                    ? rv.badgeProcessing
+                    : rv.badgeReady}
                 </div>
                 {!isCompareMode ? (
-                  <div className="text-xs uppercase tracking-[0.18em] text-neutral-500">{variantLabel}</div>
+                  <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/20">
+                    {variantLabel}
+                  </div>
                 ) : (
-                  <div className="text-xs text-neutral-500">
-                    {variantResults.filter((r) => r.status === "completed").length}/{variantResults.length} {rv.badgeReady.toLowerCase()}
+                  <div className="text-xs text-white/25">
+                    {
+                      variantResults.filter((r) => r.status === "completed")
+                        .length
+                    }
+                    /{variantResults.length} {rv.badgeReady.toLowerCase()}
                   </div>
                 )}
               </div>
@@ -428,9 +524,14 @@ export function ResultsView({
 
       {/* ── Compare mode grid ── */}
       {isCompareMode ? (
-        <section className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+        <section className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
           {variantResults.map((result) => (
-            <CompareCard key={result.variant} result={result} sourceImageUrl={sourceImageUrl} rv={rv} />
+            <CompareCard
+              key={result.variant}
+              result={result}
+              sourceImageUrl={sourceImageUrl}
+              rv={rv}
+            />
           ))}
         </section>
       ) : null}
@@ -439,47 +540,79 @@ export function ResultsView({
       {!isCompareMode ? (
         <>
           {status === "processing" ? (
-            <section className="rounded-[2rem] border border-white/10 bg-white/5 p-10 text-center">
-              <div className="mx-auto h-14 w-14 animate-spin rounded-full border-4 border-white/15 border-t-white" />
-              <p className="mt-5 text-sm text-neutral-400">{rv.spinnerText}</p>
+            <section className="flex flex-col items-center justify-center rounded-2xl border border-white/[0.07] bg-white/[0.02] py-20">
+              <div className="h-12 w-12 animate-spin rounded-full border-4 border-white/[0.08] border-t-lime-400" />
+              <p className="mt-5 text-sm text-white/30">{rv.spinnerText}</p>
             </section>
           ) : null}
 
           {status === "failed" ? (
-            <section className="rounded-[2rem] border border-red-500/20 bg-red-500/10 p-6 text-red-100">
-              <div className="text-lg font-medium">{rv.errorTitle}</div>
-              <p className="mt-2 text-sm text-red-200">{error}</p>
-              <p className="mt-2 text-xs text-red-300/90">{rv.errorTip}</p>
+            <section className="rounded-2xl border border-red-500/20 bg-red-500/[0.06] p-6">
+              <div className="flex items-start gap-3">
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 18 18"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  className="mt-0.5 shrink-0 text-red-400"
+                  aria-hidden="true"
+                >
+                  <circle cx="9" cy="9" r="7.5" />
+                  <path d="M9 5.5v3.5M9 11v.5" strokeLinecap="round" />
+                </svg>
+                <div>
+                  <div className="font-bold text-red-200">{rv.errorTitle}</div>
+                  <p className="mt-1.5 text-sm text-red-300/80">{error}</p>
+                  <p className="mt-2 text-xs text-red-400/60">{rv.errorTip}</p>
+                </div>
+              </div>
             </section>
           ) : null}
 
-          {(sourceImageUrl || previewUrls.length > 0) && status !== "processing" ? (
-            <section className="grid gap-6 lg:grid-cols-[0.72fr_1.28fr]">
+          {(sourceImageUrl || previewUrls.length > 0) &&
+          status !== "processing" ? (
+            <section className="grid gap-5 lg:grid-cols-[0.72fr_1.28fr]">
               {sourceImageUrl ? (
-                <div className="rounded-[2rem] border border-white/10 bg-white/5 p-5">
-                  <div className="mb-4 flex items-center justify-between">
-                    <div>
-                      <div className="text-xs uppercase tracking-[0.2em] text-neutral-500">{rv.originalLabel}</div>
-                      <div className="mt-2 text-lg font-medium text-white">{rv.sourceImageTitle}</div>
+                <div className="rounded-2xl border border-white/[0.08] bg-white/[0.025] p-5">
+                  <div className="mb-4">
+                    <div className="text-[10px] font-semibold uppercase tracking-[0.22em] text-white/20">
+                      {rv.originalLabel}
+                    </div>
+                    <div className="mt-1.5 font-bold text-white">
+                      {rv.sourceImageTitle}
                     </div>
                   </div>
-                  <div className="relative aspect-square overflow-hidden rounded-[1.5rem] border border-white/10 bg-black/20">
-                    <Image src={sourceImageUrl} alt={rv.sourceImageTitle} fill className="object-cover" unoptimized />
+                  <div className="relative aspect-square overflow-hidden rounded-xl border border-white/[0.06] bg-black/30">
+                    <Image
+                      src={sourceImageUrl}
+                      alt={rv.sourceImageTitle}
+                      fill
+                      className="object-cover"
+                      unoptimized
+                    />
                   </div>
                 </div>
               ) : null}
 
               {status === "completed" ? (
-                <div className="rounded-[2rem] border border-white/10 bg-white/5 p-5">
+                <div className="rounded-2xl border border-white/[0.08] bg-white/[0.025] p-5">
                   <div className="mb-5 flex items-center justify-between gap-4">
                     <div>
-                      <div className="text-xs uppercase tracking-[0.2em] text-neutral-500">{rv.resultsLabel}</div>
-                      <div className="mt-2 text-lg font-medium text-white">{rv.generatedMockups}</div>
+                      <div className="text-[10px] font-semibold uppercase tracking-[0.22em] text-white/20">
+                        {rv.resultsLabel}
+                      </div>
+                      <div className="mt-1.5 font-bold text-white">
+                        {rv.generatedMockups}
+                      </div>
                     </div>
-                    <div className="text-sm text-neutral-400">{previewUrls.length} {rv.variants}</div>
+                    <div className="text-sm text-white/30">
+                      {previewUrls.length} {rv.variants}
+                    </div>
                   </div>
 
-                  <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+                  <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                     {previewUrls.map((url, index) => (
                       <ImageCard
                         key={`${url}-${index}`}
@@ -499,24 +632,28 @@ export function ResultsView({
         </>
       ) : null}
 
-      <section className="grid gap-6 rounded-[2rem] border border-white/10 bg-[linear-gradient(135deg,rgba(255,255,255,0.07),rgba(255,255,255,0.02))] p-6 lg:grid-cols-[1fr_auto] lg:items-center">
-        <div>
-          <h2 className="text-2xl font-semibold">{rv.upsell.title}</h2>
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-neutral-400">
-            {rv.upsell.description}
-          </p>
-        </div>
-
-        <div className="flex flex-col gap-3 sm:flex-row">
-          <button className="rounded-2xl border border-white/15 px-5 py-3 text-sm font-medium text-white transition hover:border-white/30">
-            {rv.upsell.pack}
-          </button>
-          <Link
-            href="/success"
-            className="rounded-2xl bg-white px-5 py-3 text-sm font-medium text-black transition hover:bg-neutral-200"
-          >
-            {rv.upsell.bundle}
-          </Link>
+      {/* ── Upsell ── */}
+      <section className="overflow-hidden rounded-2xl border border-white/[0.08] bg-white/[0.02]">
+        <div className="grid gap-5 p-7 lg:grid-cols-[1fr_auto] lg:items-center">
+          <div>
+            <h2 className="text-xl font-black tracking-tight">
+              {rv.upsell.title}
+            </h2>
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-white/35">
+              {rv.upsell.description}
+            </p>
+          </div>
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <button className="rounded-xl border border-white/[0.1] px-5 py-2.5 text-sm font-medium text-white/60 transition hover:border-white/20 hover:text-white">
+              {rv.upsell.pack}
+            </button>
+            <Link
+              href="/success"
+              className="rounded-xl bg-lime-400 px-5 py-2.5 text-center text-sm font-bold text-black transition hover:bg-lime-300"
+            >
+              {rv.upsell.bundle}
+            </Link>
+          </div>
         </div>
       </section>
     </div>

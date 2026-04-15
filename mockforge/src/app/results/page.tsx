@@ -41,17 +41,26 @@ function ResultsPageInner() {
           ? "d"
           : "a";
 
-  return (
-    <main className="min-h-screen bg-neutral-950 text-white">
-      <div className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-6 py-12">
-        <SiteHeader />
+  const isCompare = compareVariants && compareVariants.length >= 2;
 
-        <div className="flex items-center justify-between">
-          <Link href="/upload" className="text-sm text-neutral-400 hover:text-white">
-            {t.results.back}
+  return (
+    <div className="min-h-screen bg-black text-white">
+      <SiteHeader />
+
+      <main className="mx-auto w-full max-w-6xl px-5 py-10">
+        {/* Breadcrumb */}
+        <div className="mb-8 flex items-center justify-between">
+          <Link
+            href="/upload"
+            className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-sm text-white/35 transition hover:bg-white/5 hover:text-white/70"
+          >
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
+              <path d="M9 11L5 7l4-4" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+            {t.results.back.replace("← ", "")}
           </Link>
-          <span className="rounded-full border border-white/10 px-3 py-1 text-xs text-neutral-300">
-            {compareVariants && compareVariants.length >= 2 ? t.results.comparison : t.results.result}
+          <span className="rounded-full border border-white/[0.08] px-3 py-1 text-xs text-white/25">
+            {isCompare ? t.results.comparison : t.results.result}
           </span>
         </div>
 
@@ -62,18 +71,18 @@ function ResultsPageInner() {
           productName={productName}
           sourceImageUrl={sourceImageUrl}
           variant={variant}
-          compareVariants={compareVariants && compareVariants.length >= 2 ? compareVariants : null}
+          compareVariants={isCompare ? compareVariants : null}
           customModel={customModel}
           customPrompt={customPrompt}
         />
-      </div>
-    </main>
+      </main>
+    </div>
   );
 }
 
 export default function ResultsPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-neutral-950" />}>
+    <Suspense fallback={<div className="min-h-screen bg-black" />}>
       <ResultsPageInner />
     </Suspense>
   );

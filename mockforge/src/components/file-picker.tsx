@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { memo, useEffect, useId, useState } from "react";
+import { memo, useEffect, useId, useRef, useState } from "react";
 import { useLanguage } from "@/lib/language-context";
 
 interface FilePickerProps {
@@ -10,12 +10,19 @@ interface FilePickerProps {
   onFileSelected: (file: File | null) => void;
 }
 
-function FilePickerComponent({ selectedFileName, isUploading = false, onFileSelected }: FilePickerProps) {
+function FilePickerComponent({
+  selectedFileName,
+  isUploading = false,
+  onFileSelected,
+}: FilePickerProps) {
   const inputId = useId();
   const { t } = useLanguage();
   const fp = t.filePicker;
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [internalSelectedFileName, setInternalSelectedFileName] = useState<string>("");
+  const [internalSelectedFileName, setInternalSelectedFileName] =
+    useState<string>("");
+  const [isDragging, setIsDragging] = useState(false);
+  const dropRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     return () => {
@@ -23,70 +30,180 @@ function FilePickerComponent({ selectedFileName, isUploading = false, onFileSele
     };
   }, [previewUrl]);
 
+  const processFile = (file: File) => {
+    onFileSelected(file);
+    setInternalSelectedFileName(file.name);
+    const objectUrl = URL.createObjectURL(file);
+    setPreviewUrl((prev) => {
+      if (prev) URL.revokeObjectURL(prev);
+      return objectUrl;
+    });
+  };
+
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = event.currentTarget.files?.[0] ?? null;
-    onFileSelected(selectedFile);
-
     if (selectedFile) {
-      setInternalSelectedFileName(selectedFile.name);
-
-      const objectUrl = URL.createObjectURL(selectedFile);
-      setPreviewUrl((previous) => {
-        if (previous) URL.revokeObjectURL(previous);
-        return objectUrl;
-      });
+      processFile(selectedFile);
     } else {
+      onFileSelected(null);
       setInternalSelectedFileName("");
-      setPreviewUrl((previous) => {
-        if (previous) URL.revokeObjectURL(previous);
+      setPreviewUrl((prev) => {
+        if (prev) URL.revokeObjectURL(prev);
         return null;
       });
     }
   };
 
+  const handleDrop = (event: React.DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    setIsDragging(false);
+    const file = event.dataTransfer.files?.[0];
+    if (file && ["image/png", "image/jpeg", "image/webp"].includes(file.type)) {
+      processFile(file);
+    }
+  };
+
+  const handleDragOver = (event: React.DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = () => setIsDragging(false);
+
   const visibleSelectedFileName = selectedFileName || internalSelectedFileName;
 
   return (
     <div>
-      <label className="mb-2 block text-sm text-neutral-300" htmlFor={inputId}>
+      <label
+        className="mb-2 block text-xs font-semibold text-white/40"
+        htmlFor={inputId}
+      >
         {fp.label}
       </label>
 
-      <div className="rounded-2xl border border-dashed border-white/15 bg-black/20 p-4">
-        <div className="flex flex-col gap-4">
-          <input
-            id={inputId}
-            name="file"
-            type="file"
-            accept="image/png,image/jpeg,image/webp"
-            onChange={handleFileChange}
-            disabled={isUploading}
-            className="block w-full rounded-2xl border border-white/15 bg-black/20 px-4 py-3 text-sm text-neutral-300 file:mr-4 file:rounded-xl file:border-0 file:bg-white file:px-4 file:py-2 file:text-sm file:font-medium file:text-black disabled:cursor-not-allowed disabled:opacity-60"
-          />
-
-          <div className="flex items-center gap-2 text-sm text-neutral-500">
-            <span>{fp.formats}</span>
-            {isUploading && <span className="text-emerald-400">{fp.uploading}</span>}
-            {visibleSelectedFileName && !isUploading && (
-              <span className="text-emerald-400 truncate">· {visibleSelectedFileName}</span>
-            )}
+      <div
+        ref={dropRef}
+        onDrop={handleDrop}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        className={`rounded-2xl border-2 border-dashed transition ${
+          isDragging
+            ? "border-lime-400/50 bg-lime-400/[0.04]"
+            : "border-white/[0.08] bg-white/[0.015] hover:border-white/[0.15]"
+        }`}
+      >
+        {previewUrl ? (
+          <div className="relative aspect-square overflow-hidden rounded-xl">
+            <Image
+              src={previewUrl}
+              alt="Local upload preview"
+              fill
+              className="object-cover"
+              unoptimized
+            />
+            {/* Replace overlay */}
+            <label
+              htmlFor={inputId}
+              className="absolute inset-0 flex cursor-pointer items-center justify-center bg-black/0 opacity-0 transition hover:bg-black/55 hover:opacity-100"
+            >
+              <span className="rounded-full border border-white/20 bg-black/70 px-4 py-2 text-sm font-semibold text-white backdrop-blur-sm">
+                Replace image
+              </span>
+            </label>
           </div>
+        ) : (
+          <label
+            htmlFor={inputId}
+            className="flex min-h-52 cursor-pointer flex-col items-center justify-center gap-4 p-8 text-center"
+          >
+            {isUploading ? (
+              <>
+                <div className="h-10 w-10 animate-spin rounded-full border-4 border-white/[0.08] border-t-lime-400" />
+                <span className="text-sm text-white/35">
+                  {fp.uploading.replace("· ", "")}
+                </span>
+              </>
+            ) : (
+              <>
+                {/* Upload icon */}
+                <div
+                  className={`flex h-14 w-14 items-center justify-center rounded-2xl border transition ${
+                    isDragging
+                      ? "border-lime-400/30 bg-lime-400/10 text-lime-400"
+                      : "border-white/[0.08] bg-white/[0.04] text-white/30"
+                  }`}
+                >
+                  <svg
+                    width="22"
+                    height="22"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                    aria-hidden="true"
+                  >
+                    <path
+                      d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"
+                      strokeLinecap="round"
+                    />
+                    <polyline points="17 8 12 3 7 8" strokeLinecap="round" strokeLinejoin="round" />
+                    <line x1="12" y1="3" x2="12" y2="15" strokeLinecap="round" />
+                  </svg>
+                </div>
 
-          {previewUrl ? (
-            <div className="relative aspect-square max-w-sm overflow-hidden rounded-3xl border border-white/10 bg-black/20">
-              <Image src={previewUrl} alt="Local upload preview" fill className="object-cover" unoptimized />
-            </div>
-          ) : (
-            <div className="flex min-h-56 items-center justify-center rounded-2xl border border-dashed border-white/10 bg-black/20 text-center text-sm text-neutral-500">
-              {fp.placeholder}
-            </div>
-          )}
-        </div>
+                <div>
+                  <p className="text-sm font-semibold text-white/55">
+                    {isDragging ? (
+                      <span className="text-lime-400">Release to upload</span>
+                    ) : (
+                      "Drop your product image here"
+                    )}
+                  </p>
+                  <p className="mt-1 text-xs text-white/20">
+                    {fp.formats} · Click to browse
+                  </p>
+                </div>
+              </>
+            )}
+          </label>
+        )}
+
+        <input
+          id={inputId}
+          name="file"
+          type="file"
+          accept="image/png,image/jpeg,image/webp"
+          onChange={handleFileChange}
+          disabled={isUploading}
+          className="sr-only"
+        />
       </div>
 
-      <p className="mt-2 text-xs text-neutral-500">
-        {fp.hint}
-      </p>
+      {/* Status line */}
+      <div className="mt-2 flex items-center gap-2 text-xs">
+        {isUploading ? (
+          <span className="flex items-center gap-1.5 text-lime-400">
+            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-lime-400" />
+            Uploading...
+          </span>
+        ) : visibleSelectedFileName ? (
+          <span className="flex items-center gap-1.5 truncate text-lime-400">
+            <svg
+              width="12"
+              height="12"
+              viewBox="0 0 12 12"
+              fill="none"
+              aria-hidden="true"
+            >
+              <circle cx="6" cy="6" r="5.5" className="fill-lime-400/20 stroke-lime-400" strokeWidth="1"/>
+              <path d="M3.5 6l2 2 3-3" stroke="#a3e635" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+            {visibleSelectedFileName}
+          </span>
+        ) : (
+          <span className="text-white/20">{fp.hint}</span>
+        )}
+      </div>
     </div>
   );
 }

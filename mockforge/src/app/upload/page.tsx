@@ -16,28 +16,49 @@ function UploadPageInner() {
 
   const fileParam = searchParams.get("file");
   const sourceImageUrl = fileParam ? `/api/uploads/${fileParam}` : undefined;
-  const preset = getPresetById(searchParams.get("preset") ?? "")?.id ?? ("clean_studio" as PresetId);
+  const preset =
+    getPresetById(searchParams.get("preset") ?? "")?.id ??
+    ("clean_studio" as PresetId);
   const category = searchParams.get("category") ?? "";
   const format = searchParams.get("format") ?? "1:1 square";
   const productName = searchParams.get("productName") ?? "";
   const variantParam = searchParams.get("variant");
   const variant: GenerationVariant =
-    variantParam === "d" ? "d" : variantParam === "c" ? "c" : variantParam === "b" ? "b" : "a";
+    variantParam === "d"
+      ? "d"
+      : variantParam === "c"
+        ? "c"
+        : variantParam === "b"
+          ? "b"
+          : "a";
 
   return (
-    <main className="min-h-screen bg-neutral-950 text-white">
-      <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-6 py-12">
-        <SiteHeader />
+    <div className="min-h-screen bg-black text-white">
+      <SiteHeader />
 
-        <div>
-          <Link href="/" className="text-sm text-neutral-400 hover:text-white">
-            {t.upload.back}
+      <main className="mx-auto w-full max-w-5xl px-5 py-10">
+        {/* Breadcrumb */}
+        <div className="mb-8">
+          <Link
+            href="/"
+            className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-sm text-white/35 transition hover:bg-white/5 hover:text-white/70"
+          >
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
+              <path d="M9 11L5 7l4-4" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+            {t.upload.back.replace("← ", "")}
           </Link>
         </div>
 
-        <div className="max-w-2xl space-y-3">
-          <h1 className="text-4xl font-semibold tracking-tight">{t.upload.title}</h1>
-          <p className="text-base text-neutral-400">
+        {/* Page header */}
+        <div className="mb-10">
+          <div className="mb-2 text-xs font-semibold uppercase tracking-[0.28em] text-white/20">
+            New mockup
+          </div>
+          <h1 className="text-3xl font-black tracking-tight md:text-4xl">
+            {t.upload.title}
+          </h1>
+          <p className="mt-3 max-w-lg text-base text-white/40">
             {t.upload.description}
           </p>
         </div>
@@ -52,14 +73,14 @@ function UploadPageInner() {
           initialProductName={productName}
           initialVariant={variant}
         />
-      </div>
-    </main>
+      </main>
+    </div>
   );
 }
 
 export default function UploadPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-neutral-950" />}>
+    <Suspense fallback={<div className="min-h-screen bg-black" />}>
       <UploadPageInner />
     </Suspense>
   );

@@ -26,7 +26,7 @@ function formatDate(iso: string, lang: string) {
   });
 }
 
-function MetaRow({
+function MetaItem({
   label,
   value,
   mono = false,
@@ -38,9 +38,13 @@ function MetaRow({
   valueClass?: string;
 }) {
   return (
-    <div className="flex flex-col gap-0.5">
-      <dt className="text-[10px] uppercase tracking-[0.2em] text-neutral-500">{label}</dt>
-      <dd className={`text-xs text-neutral-200 ${mono ? "font-mono" : ""} ${valueClass ?? ""}`}>
+    <div className="rounded-xl border border-white/[0.06] bg-white/[0.03] px-3 py-2.5">
+      <dt className="text-[9px] font-bold uppercase tracking-[0.22em] text-white/20">
+        {label}
+      </dt>
+      <dd
+        className={`mt-1 truncate text-xs text-white/70 ${mono ? "font-mono" : "font-semibold"} ${valueClass ?? ""}`}
+      >
         {value}
       </dd>
     </div>
@@ -58,22 +62,42 @@ export function GenerationDetail({ generation }: GenerationDetailProps) {
 
   return (
     <div className="flex flex-col gap-8">
+      {/* Breadcrumb row */}
       <div className="flex items-center justify-between">
-        <Link href="/history" className="text-sm text-neutral-400 hover:text-white">
+        <Link
+          href="/history"
+          className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-sm text-white/35 transition hover:bg-white/[0.05] hover:text-white/70"
+        >
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 14 14"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            aria-hidden="true"
+          >
+            <path d="M9 11L5 7l4-4" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
           {h.back}
         </Link>
-        <span className="rounded-full border border-white/10 px-3 py-1 text-xs text-neutral-300">
+        <span className="rounded-full border border-white/[0.08] px-3 py-1 text-xs text-white/25">
           {formatDate(generation.createdAt, language)}
         </span>
       </div>
 
-      <div className="flex flex-col gap-8 lg:flex-row">
+      <div className="flex flex-col gap-6 lg:flex-row">
         {/* Images */}
-        <div className="flex flex-1 flex-col gap-4">
+        <div className="flex flex-1 flex-col gap-5">
           {generation.previewUrls.length > 0 ? (
-            <div className={`grid gap-3 ${generation.previewUrls.length > 1 ? "grid-cols-2" : "grid-cols-1"}`}>
+            <div
+              className={`grid gap-3 ${generation.previewUrls.length > 1 ? "grid-cols-2" : "grid-cols-1"}`}
+            >
               {generation.previewUrls.map((url, i) => (
-                <div key={i} className="group relative overflow-hidden rounded-2xl bg-neutral-900">
+                <div
+                  key={i}
+                  className="group relative overflow-hidden rounded-2xl bg-neutral-950"
+                >
                   <Image
                     src={url}
                     alt={`${h.generatedMockup} ${i + 1}`}
@@ -87,7 +111,7 @@ export function GenerationDetail({ generation }: GenerationDetailProps) {
                     download
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="absolute bottom-3 right-3 rounded-full bg-black/60 px-3 py-1.5 text-xs text-white opacity-0 backdrop-blur-sm transition group-hover:opacity-100"
+                    className="absolute bottom-3 right-3 rounded-full bg-black/70 px-3 py-1.5 text-xs font-medium text-white opacity-0 backdrop-blur-sm transition group-hover:opacity-100 hover:bg-black"
                   >
                     {h.download}
                   </a>
@@ -95,15 +119,17 @@ export function GenerationDetail({ generation }: GenerationDetailProps) {
               ))}
             </div>
           ) : (
-            <div className="flex aspect-square items-center justify-center rounded-2xl bg-neutral-900 text-neutral-600 text-sm">
+            <div className="flex aspect-square items-center justify-center rounded-2xl bg-neutral-950 text-sm text-white/20">
               {h.noImages}
             </div>
           )}
 
           {generation.sourceImageUrl && (
             <div className="flex flex-col gap-2">
-              <p className="text-[11px] uppercase tracking-[0.2em] text-neutral-500">{h.originalImage}</p>
-              <div className="relative overflow-hidden rounded-xl bg-neutral-900">
+              <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-white/20">
+                {h.originalImage}
+              </p>
+              <div className="relative overflow-hidden rounded-xl border border-white/[0.07] bg-neutral-950">
                 <Image
                   src={generation.sourceImageUrl}
                   alt={h.originalImageAlt}
@@ -119,46 +145,54 @@ export function GenerationDetail({ generation }: GenerationDetailProps) {
 
         {/* Metadata sidebar */}
         <div className="flex w-full flex-col gap-4 lg:w-72">
-          <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
-            <h2 className="mb-4 text-sm font-semibold text-white">
+          <div className="rounded-2xl border border-white/[0.08] bg-white/[0.025] p-5">
+            <h2 className="mb-4 text-base font-black tracking-tight text-white">
               {generation.productName ?? h.noName}
             </h2>
 
-            <dl className="flex flex-col gap-3">
-              <MetaRow label={h.metaLabels.preset} value={preset?.name ?? generation.preset} />
+            <dl className="grid grid-cols-1 gap-2">
+              <MetaItem label={h.metaLabels.preset} value={preset?.name ?? generation.preset} />
               {generation.category && (
-                <MetaRow label={h.metaLabels.category} value={generation.category} />
+                <MetaItem label={h.metaLabels.category} value={generation.category} />
               )}
               {generation.format && (
-                <MetaRow label={h.metaLabels.format} value={generation.format} />
+                <MetaItem label={h.metaLabels.format} value={generation.format} />
               )}
-              <MetaRow label={h.metaLabels.variant} value={VARIANT_LABELS[generation.variant] ?? generation.variant} />
-              <MetaRow label={h.metaLabels.model} value={generation.model} mono />
+              <MetaItem
+                label={h.metaLabels.variant}
+                value={VARIANT_LABELS[generation.variant] ?? generation.variant}
+              />
+              <MetaItem label={h.metaLabels.model} value={generation.model} mono />
               {generation.provider && (
-                <MetaRow label={h.metaLabels.provider} value={generation.provider} />
+                <MetaItem label={h.metaLabels.provider} value={generation.provider} />
               )}
-              <MetaRow
+              <MetaItem
                 label={h.metaLabels.status}
                 value={generation.status}
                 valueClass={
                   generation.status === "completed"
-                    ? "text-green-400"
+                    ? "text-emerald-400"
                     : generation.status === "failed"
-                    ? "text-red-400"
-                    : "text-yellow-400"
+                      ? "text-red-400"
+                      : "text-amber-400"
                 }
               />
             </dl>
 
-            <div className="mt-5 border-t border-white/10 pt-4">
-              <p className="mb-3 text-[10px] uppercase tracking-[0.2em] text-neutral-500">{h.rating}</p>
-              <RatingButtons generationId={generation.id} initialRating={generation.rating} />
+            <div className="mt-5 border-t border-white/[0.06] pt-4">
+              <p className="mb-3 text-[10px] font-bold uppercase tracking-[0.22em] text-white/20">
+                {h.rating}
+              </p>
+              <RatingButtons
+                generationId={generation.id}
+                initialRating={generation.rating}
+              />
             </div>
           </div>
 
           <Link
             href="/upload"
-            className="rounded-2xl bg-white px-4 py-2.5 text-center text-sm font-medium text-black transition hover:bg-neutral-200"
+            className="inline-flex items-center justify-center rounded-xl bg-lime-400 px-4 py-3 text-sm font-bold text-black transition hover:bg-lime-300 active:scale-[0.98]"
           >
             {h.newGeneration}
           </Link>
