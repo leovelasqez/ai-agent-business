@@ -15,32 +15,51 @@ export const CURATED_MODELS = [
 
 export type CuratedModelId = (typeof CURATED_MODELS)[number]["id"];
 
+export const VARIANT_LABELS: Record<string, string> = {
+  a: "A · Nano Banana 2",
+  b: "B · GPT Image",
+  c: "C · FLUX.2 Pro",
+  d: "D · Personalizado",
+};
+
+type FormatKey = "9:16" | "4:5" | "1:1" | "16:9";
+
+const FORMAT_SIZE_TABLE: Record<FormatKey, Record<"a" | "b" | "c", string>> = {
+  "9:16": { a: "9:16", b: "1024x1536", c: "portrait_16_9" },
+  "4:5":  { a: "4:5",  b: "1024x1536", c: "portrait_4_3" },
+  "1:1":  { a: "1:1",  b: "1024x1024", c: "square_hd" },
+  "16:9": { a: "16:9", b: "1536x1024", c: "landscape_16_9" },
+};
+
+const FORMAT_DEFAULTS: Record<"a" | "b" | "c", string> = {
+  a: "1:1",
+  b: "1024x1024",
+  c: "auto",
+};
+
+export function mapFormatToSize(format: string | undefined, variant: "a" | "b" | "c"): string {
+  if (!format) return FORMAT_DEFAULTS[variant];
+  const n = format.toLowerCase();
+  const key: FormatKey | null =
+    n.includes("9:16") || n.includes("story") ? "9:16" :
+    n.includes("4:5") ? "4:5" :
+    n.includes("16:9") || n.includes("landscape") ? "16:9" :
+    n.includes("1:1") ? "1:1" :
+    null;
+  return key ? FORMAT_SIZE_TABLE[key][variant] : FORMAT_DEFAULTS[variant];
+}
+
+// Legacy wrappers kept for existing call sites and tests
 export function mapFormatToNanoBananaAspectRatio(format?: string): string {
-  if (!format) return "1:1";
-  const normalized = format.toLowerCase();
-  if (normalized.includes("9:16") || normalized.includes("story")) return "9:16";
-  if (normalized.includes("4:5")) return "4:5";
-  if (normalized.includes("16:9") || normalized.includes("landscape")) return "16:9";
-  return "1:1";
+  return mapFormatToSize(format, "a");
 }
 
 export function mapFormatToGptImageSize(format?: string): string {
-  if (!format) return "1024x1024";
-  const normalized = format.toLowerCase();
-  if (normalized.includes("9:16") || normalized.includes("story")) return "1024x1536";
-  if (normalized.includes("4:5")) return "1024x1536";
-  if (normalized.includes("16:9") || normalized.includes("landscape")) return "1536x1024";
-  return "1024x1024";
+  return mapFormatToSize(format, "b");
 }
 
 export function mapFormatToFlux2ProImageSize(format?: string): string {
-  if (!format) return "auto";
-  const normalized = format.toLowerCase();
-  if (normalized.includes("9:16") || normalized.includes("story")) return "portrait_16_9";
-  if (normalized.includes("4:5")) return "portrait_4_3";
-  if (normalized.includes("1:1")) return "square_hd";
-  if (normalized.includes("16:9") || normalized.includes("landscape")) return "landscape_16_9";
-  return "auto";
+  return mapFormatToSize(format, "c");
 }
 
 // Legacy alias kept for any code that may still reference it

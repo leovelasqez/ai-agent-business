@@ -8,9 +8,8 @@ import {
   MODEL_B,
   MODEL_C,
   CURATED_MODELS,
-  mapFormatToFlux2ProImageSize,
-  mapFormatToGptImageSize,
-  mapFormatToNanoBananaAspectRatio,
+  VARIANT_LABELS,
+  mapFormatToSize,
 } from "@/lib/model-config";
 import type { RunGenerationInput, RunGenerationResult } from "@/lib/image-provider";
 
@@ -128,7 +127,7 @@ function buildFalInput(
       output_format: "jpeg",
       num_images: 1,
       quality: "high",
-      image_size: mapFormatToGptImageSize(format),
+      image_size: mapFormatToSize(format, "b"),
     };
     if (maskUrl) base.mask_url = maskUrl;
     return base;
@@ -139,7 +138,7 @@ function buildFalInput(
       prompt,
       image_urls: [resolvedImageUrl],
       output_format: "jpeg",
-      image_size: mapFormatToFlux2ProImageSize(format),
+      image_size: mapFormatToSize(format, "c"),
       enable_safety_checker: true,
     };
   }
@@ -150,7 +149,7 @@ function buildFalInput(
     image_urls: [resolvedImageUrl],
     output_format: "jpeg",
     num_images: 1,
-    aspect_ratio: mapFormatToNanoBananaAspectRatio(format),
+    aspect_ratio: mapFormatToSize(format, "a"),
     resolution: "1K",
   };
 }
@@ -223,14 +222,7 @@ export async function runFalGeneration(input: RunGenerationInput): Promise<RunGe
     throw new Error("fal returned no output images");
   }
 
-  const variantLabel =
-    variant === "d"
-      ? "D · Personalizado"
-      : variant === "c"
-        ? "C · FLUX.2 Pro"
-        : variant === "b"
-          ? "B · GPT Image"
-          : "A · Nano Banana 2";
+  const variantLabel = VARIANT_LABELS[variant] ?? variant;
 
   return {
     provider: "fal",

@@ -6,6 +6,7 @@ import { useEffect, useMemo, useState } from "react";
 import { ResultsSummary } from "@/components/results-summary";
 import { RatingButtons } from "@/components/rating-buttons";
 import { useLanguage } from "@/lib/language-context";
+import { VARIANT_LABELS } from "@/lib/model-config";
 import type { GenerationStatus } from "@/lib/types";
 import type { GenerationVariant } from "@/lib/image-provider";
 
@@ -37,13 +38,6 @@ interface GenerateResponse {
     variantLabel?: string;
   };
 }
-
-const VARIANT_LABELS: Record<string, string> = {
-  a: "A · Nano Banana 2",
-  b: "B · GPT Image",
-  c: "C · FLUX.2 Pro",
-  d: "D · Personalizado",
-};
 
 async function callGenerate(body: {
   preset: string;

@@ -4,16 +4,10 @@ import Image from "next/image";
 import Link from "next/link";
 import { useLanguage } from "@/lib/language-context";
 import { getPresetById } from "@/lib/presets";
+import { VARIANT_LABELS } from "@/lib/model-config";
 import type { MockupGeneration } from "@/lib/types";
 
 type Generation = MockupGeneration & { model: string; variant: string };
-
-const VARIANT_LABELS: Record<string, string> = {
-  a: "FLUX Dev",
-  b: "FLUX Pro",
-  c: "GPT Image 1",
-  d: "Nano Banana 2",
-};
 
 const VARIANT_COLORS: Record<string, string> = {
   a: "bg-stone-500/15 text-stone-300",

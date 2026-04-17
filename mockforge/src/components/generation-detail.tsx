@@ -5,16 +5,10 @@ import Link from "next/link";
 import { useLanguage } from "@/lib/language-context";
 import { RatingButtons } from "@/components/rating-buttons";
 import { getPresetById } from "@/lib/presets";
+import { VARIANT_LABELS } from "@/lib/model-config";
 import type { MockupGeneration } from "@/lib/types";
 
 type Generation = MockupGeneration & { model: string; variant: string };
-
-const VARIANT_LABELS: Record<string, string> = {
-  a: "A · FLUX Kontext Dev",
-  b: "B · FLUX Kontext Pro",
-  c: "C · GPT Image 1",
-  d: "D · Nano Banana 2",
-};
 
 function formatDate(iso: string, lang: string) {
   return new Date(iso).toLocaleDateString(lang === "es" ? "es-MX" : "en-US", {
