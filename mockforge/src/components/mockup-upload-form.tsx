@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { FilePicker } from "@/components/file-picker";
 import { PRESETS, type PresetId } from "@/lib/presets";
@@ -30,16 +30,15 @@ export function MockupUploadForm({
   const { t } = useLanguage();
   const f = t.form;
 
-  const VARIANTS: {
-    id: GenerationVariant;
-    label: string;
-    description: string;
-  }[] = [
-    { id: "a", label: f.variants[0].label, description: f.variants[0].description },
-    { id: "b", label: f.variants[1].label, description: f.variants[1].description },
-    { id: "c", label: f.variants[2].label, description: f.variants[2].description },
-    { id: "d", label: f.variants[3].label, description: f.variants[3].description },
-  ];
+  const VARIANTS = useMemo(
+    () => [
+      { id: "a" as GenerationVariant, label: f.variants[0].label, description: f.variants[0].description },
+      { id: "b" as GenerationVariant, label: f.variants[1].label, description: f.variants[1].description },
+      { id: "c" as GenerationVariant, label: f.variants[2].label, description: f.variants[2].description },
+      { id: "d" as GenerationVariant, label: f.variants[3].label, description: f.variants[3].description },
+    ],
+    [f.variants],
+  );
 
   const [productName, setProductName] = useState(initialProductName);
   const [category, setCategory] = useState(initialCategory);
@@ -64,6 +63,13 @@ export function MockupUploadForm({
     const hasVariants = compareMode ? compareVariants.size >= 2 : true;
     return !isSubmitting && !isUploadingFile && hasImage && hasVariants;
   }, [effectiveSourceImageUrl, isSubmitting, isUploadingFile, compareMode, compareVariants]);
+
+  // Auto-clear upload/form errors after 6 s so the UI recovers without manual dismissal
+  useEffect(() => {
+    if (!error) return;
+    const timer = setTimeout(() => setError(null), 6000);
+    return () => clearTimeout(timer);
+  }, [error]);
 
   const uploadFile = useCallback(async (file: File) => {
     setSelectedFileName(file.name);
