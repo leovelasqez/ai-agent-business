@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { ResultsSummary } from "@/components/results-summary";
 import { RatingButtons } from "@/components/rating-buttons";
 import { useLanguage } from "@/lib/language-context";
@@ -245,12 +245,15 @@ export function ResultsView({
   const { t } = useLanguage();
   const rv = t.resultsView;
 
-  function friendlyError(raw: string): string {
-    if (raw.includes("Load failed")) return rv.errors.loadFailed;
-    if (raw.includes("Failed to fetch")) return rv.errors.fetchFailed;
-    if (raw.includes("ENOENT")) return rv.errors.fileNotFound;
-    return raw;
-  }
+  const friendlyError = useCallback(
+    (raw: string): string => {
+      if (raw.includes("Load failed")) return rv.errors.loadFailed;
+      if (raw.includes("Failed to fetch")) return rv.errors.fetchFailed;
+      if (raw.includes("ENOENT")) return rv.errors.fileNotFound;
+      return raw;
+    },
+    [rv.errors],
+  );
 
   const [status, setStatus] = useState<GenerationStatus>("processing");
   const [previewUrls, setPreviewUrls] = useState<string[]>([]);
@@ -351,6 +354,9 @@ export function ResultsView({
     variant,
     isCompareMode,
     defaultVariantLabel,
+    customModel,
+    customPrompt,
+    friendlyError,
   ]);
 
   useEffect(() => {
@@ -416,6 +422,9 @@ export function ResultsView({
     format,
     productName,
     sourceImageUrl,
+    customModel,
+    customPrompt,
+    friendlyError,
   ]);
 
   const title = useMemo(() => {
