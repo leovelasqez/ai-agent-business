@@ -39,20 +39,24 @@ interface GenerateResponse {
   };
 }
 
-async function callGenerate(body: {
-  preset: string;
-  category: string;
-  format: string;
-  productName: string;
-  sourceImageUrl?: string;
-  variant: string;
-  customModel?: string;
-  customPrompt?: string;
-}): Promise<GenerateResponse> {
+async function callGenerate(
+  body: {
+    preset: string;
+    category: string;
+    format: string;
+    productName: string;
+    sourceImageUrl?: string;
+    variant: string;
+    customModel?: string;
+    customPrompt?: string;
+  },
+  signal?: AbortSignal,
+): Promise<GenerateResponse> {
   const response = await fetch("/api/generate", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
+    signal,
   });
   return response.json() as Promise<GenerateResponse>;
 }
@@ -298,36 +302,37 @@ export function ResultsView({
   useEffect(() => {
     if (isCompareMode) return;
 
-    let isCancelled = false;
+    const controller = new AbortController();
 
     async function generate() {
       setStatus("processing");
       setError(null);
 
       try {
-        const json = await callGenerate({
-          preset,
-          category,
-          format,
-          productName,
-          sourceImageUrl,
-          variant,
-          customModel,
-          customPrompt,
-        });
+        const json = await callGenerate(
+          {
+            preset,
+            category,
+            format,
+            productName,
+            sourceImageUrl,
+            variant,
+            customModel,
+            customPrompt,
+          },
+          controller.signal,
+        );
 
         if (!json.ok || !json.data?.previewUrls?.length) {
           throw new Error(json.details || json.message || "Generation failed");
         }
-
-        if (isCancelled) return;
 
         setPreviewUrls(json.data.previewUrls);
         setGenerationId(json.data.generationId ?? null);
         setVariantLabel(json.data.variantLabel || defaultVariantLabel);
         setStatus("completed");
       } catch (err) {
-        if (isCancelled) return;
+        if (controller.signal.aborted) return;
         const raw =
           err instanceof Error ? err.message : "Unknown generation error";
         setError(friendlyError(raw));
@@ -336,9 +341,7 @@ export function ResultsView({
     }
 
     generate();
-    return () => {
-      isCancelled = true;
-    };
+    return () => controller.abort();
   }, [
     preset,
     category,
@@ -353,22 +356,23 @@ export function ResultsView({
   useEffect(() => {
     if (!isCompareMode || !compareVariants) return;
 
-    let isCancelled = false;
+    const controller = new AbortController();
 
     async function generateVariant(v: GenerationVariant, index: number) {
       try {
-        const json = await callGenerate({
-          preset,
-          category,
-          format,
-          productName,
-          sourceImageUrl,
-          variant: v,
-          customModel: v === "d" ? customModel : undefined,
-          customPrompt: v === "d" ? customPrompt : undefined,
-        });
-
-        if (isCancelled) return;
+        const json = await callGenerate(
+          {
+            preset,
+            category,
+            format,
+            productName,
+            sourceImageUrl,
+            variant: v,
+            customModel: v === "d" ? customModel : undefined,
+            customPrompt: v === "d" ? customPrompt : undefined,
+          },
+          controller.signal,
+        );
 
         if (!json.ok || !json.data?.previewUrls?.length) {
           throw new Error(json.details || json.message || "Generation failed");
@@ -382,14 +386,13 @@ export function ResultsView({
                   status: "completed",
                   previewUrls: json.data!.previewUrls,
                   generationId: json.data!.generationId ?? null,
-                  variantLabel:
-                    json.data!.variantLabel || r.variantLabel,
+                  variantLabel: json.data!.variantLabel || r.variantLabel,
                 }
               : r,
           ),
         );
       } catch (err) {
-        if (isCancelled) return;
+        if (controller.signal.aborted) return;
         const raw =
           err instanceof Error ? err.message : "Unknown generation error";
         setVariantResults((prev) =>
@@ -402,11 +405,9 @@ export function ResultsView({
       }
     }
 
-    void Promise.all(compareVariants.map((v, i) => generateVariant(v, i)));
+    void Promise.allSettled(compareVariants.map((v, i) => generateVariant(v, i)));
 
-    return () => {
-      isCancelled = true;
-    };
+    return () => controller.abort();
   }, [
     isCompareMode,
     compareVariants,
