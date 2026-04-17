@@ -98,31 +98,31 @@ Plan priorizado para ejecutar a lo largo de varias sesiones. Cada item incluye a
 
 ## 🟢 Fase 4 — Operación y escala
 
-### [ ] 14. CI/CD
+### [x] 14. CI/CD
 - No hay workflows de GitHub Actions
 - Mínimo: `lint` + `build` + `playwright` en cada PR
 - Idealmente: deploy automático a staging en merge a `main`
 
-### [ ] 15. Observabilidad
+### [x] 15. Observabilidad
 - Logging estructurado con correlation IDs por request
 - Sentry para errores cliente y servidor
 - Métricas de fallback Supabase→local (hoy solo `console.warn` en `storage-provider.ts:169`)
 - Health check real en `/api/provider/health` (testar conectividad FAL, no solo `FAL_KEY` exists)
 
-### [ ] 16. Job queue
+### [x] 16. Job queue
 - Generación síncrona bloquea respuesta HTTP
 - Si fal.ai tarda >30s en Vercel → timeout
 - Opciones: BullMQ + Redis, Inngest, AWS SQS
 - Cambia el contrato de `/api/generate` (devolver `jobId`, polling/SSE)
 
-### [ ] 17. Tests
+### [x] 17. Tests
 - Hoy: 3 unit tests (file-storage, model-config, storage-provider) + 1 Playwright smoke
 - Faltan:
   - Tests de API routes (upload, generate, rate)
   - Tests de componentes críticos (form, results-view)
   - Smoke test E2E completo (upload → generate → display)
 
-### [ ] 18. Deploy a VPS
+### [x] 18. Deploy a VPS
 **Archivo:** `DEPLOY.md`
 - Documentar: pm2 o systemd, Nginx reverse proxy, SSL Let's Encrypt
 - Migraciones Supabase en prod

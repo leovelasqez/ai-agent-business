@@ -7,7 +7,6 @@ import {
   STORAGE_BUCKETS,
   saveInputUpload,
   saveOutputBase64,
-  downloadAndSaveOutput,
 } from "@/lib/storage-provider";
 
 async function run() {

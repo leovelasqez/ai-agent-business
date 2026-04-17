@@ -11,6 +11,8 @@
     "test:model-config": "node --import tsx src/lib/model-config.test.ts",
     "test:storage-provider": "node --import tsx src/lib/storage-provider.test.ts",
     "test": "npm run test:file-storage && npm run test:model-config && npm run test:storage-provider",
+    "test:health": "node --import tsx src/app/api/provider/health/route.test.ts",
+    "test:queue": "node --import tsx src/lib/job-queue.test.ts",
     "test:e2e": "playwright test"
   },
   "dependencies": {

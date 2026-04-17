@@ -18,6 +18,7 @@ import {
   saveBase64ImageToLocal,
   downloadImageToLocal,
 } from "@/lib/file-storage";
+import { incrementMetric } from "@/lib/metrics";
 import { getSupabaseServiceClient } from "@/lib/supabase";
 
 // ---- Bucket names ----
@@ -166,6 +167,7 @@ async function withLocalFallback<T extends StorageSaveResult>(
   try {
     return await supabaseFn();
   } catch (err) {
+    incrementMetric("storageFallbackToLocal");
     console.warn(
       `[storage] Supabase ${label} failed, falling back to local:`,
       err instanceof Error ? err.message : err,
