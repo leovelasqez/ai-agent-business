@@ -173,10 +173,10 @@ export function MockupUploadForm({
         : f.submitGenerate;
 
   const inputClass =
-    "w-full rounded-xl border border-white/[0.08] bg-white/[0.03] px-4 py-3 text-sm text-white outline-none transition placeholder:text-white/20 focus:border-lime-400/40 focus:ring-1 focus:ring-lime-400/15 hover:border-white/[0.12]";
+    "w-full rounded-xl border border-white/[0.08] bg-white/[0.03] px-4 py-3 text-sm text-white outline-none transition placeholder:text-white/20 focus:border-[#05DF72]/40 focus:ring-1 focus:ring-lime-400/15 hover:border-white/[0.12]";
 
   const selectClass =
-    "w-full rounded-xl border border-white/[0.08] bg-white/[0.03] px-4 py-3 text-sm text-white outline-none transition focus:border-lime-400/40 hover:border-white/[0.12] cursor-pointer";
+    "w-full appearance-none rounded-xl border border-white/[0.08] bg-neutral-950 px-4 py-3 text-sm text-white outline-none transition focus:border-[#05DF72]/40 focus:ring-1 focus:ring-lime-400/15 hover:border-white/[0.12] cursor-pointer";
 
   return (
     <div className="grid gap-5 lg:grid-cols-[1.1fr_0.9fr]">
@@ -199,7 +199,7 @@ export function MockupUploadForm({
           />
 
           {effectiveSourceImageUrl && !selectedSourceImageUrl ? (
-            <div className="mt-5 rounded-xl border border-lime-400/15 bg-lime-400/[0.05] p-4">
+            <div className="mt-5 rounded-xl border border-[#05DF72]/15 bg-[#05DF72]/[0.05] p-4">
               <div className="mb-3 text-sm text-lime-200/80">{f.preloadedImage}</div>
               <div className="relative aspect-square max-w-sm overflow-hidden rounded-xl border border-white/[0.08] bg-black/30">
                 <Image
@@ -216,7 +216,7 @@ export function MockupUploadForm({
 
         {/* Product details card */}
         <div className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-6">
-          <h3 className="mb-5 text-sm font-semibold text-white/60">Product details</h3>
+          <h3 className="mb-5 text-sm font-semibold text-white/60">{t.upload.productDetails}</h3>
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
@@ -251,6 +251,7 @@ export function MockupUploadForm({
               value={format}
               onChange={(e) => setFormat(e.target.value)}
               className={selectClass}
+              style={{ colorScheme: "dark" }}
             >
               <option value="1:1 square">{f.formatOptions.square}</option>
               <option value="4:5 portrait">{f.formatOptions.portrait}</option>
@@ -269,7 +270,7 @@ export function MockupUploadForm({
               onClick={() => setCompareMode((v) => !v)}
               className={`rounded-full border px-3 py-1 text-xs font-medium transition ${
                 compareMode
-                  ? "border-lime-400/40 bg-lime-400/10 text-lime-400"
+                  ? "border-[#05DF72]/40 bg-[#05DF72]/10 text-[#05DF72]"
                   : "border-white/[0.08] bg-white/[0.03] text-white/35 hover:border-white/[0.15] hover:text-white/60"
               }`}
             >
@@ -288,7 +289,7 @@ export function MockupUploadForm({
                     onClick={() => toggleCompareVariant(v.id)}
                     className={`rounded-xl border px-4 py-3.5 text-left text-sm transition ${
                       compareVariants.has(v.id)
-                        ? "border-lime-400/40 bg-lime-400/[0.06] text-white"
+                        ? "border-[#05DF72]/40 bg-[#05DF72]/[0.06] text-white"
                         : "border-white/[0.07] bg-white/[0.02] text-white/35 hover:border-white/[0.12]"
                     }`}
                   >
@@ -310,7 +311,7 @@ export function MockupUploadForm({
                   onClick={() => setVariant(v.id)}
                   className={`rounded-xl border px-3 py-3 text-left text-sm transition ${
                     variant === v.id
-                      ? "border-lime-400 bg-lime-400/10 text-lime-300"
+                      ? "border-[#05DF72] bg-[#05DF72]/10 text-[#34e58a]"
                       : "border-white/[0.07] bg-white/[0.02] text-white/35 hover:border-white/[0.12] hover:text-white/60"
                   }`}
                 >
@@ -325,7 +326,7 @@ export function MockupUploadForm({
         {/* Variant D controls */}
         {(variant === "d" || (compareMode && compareVariants.has("d"))) && (
           <div className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-6">
-            <h3 className="mb-4 text-sm font-semibold text-white/60">Custom model settings</h3>
+            <h3 className="mb-4 text-sm font-semibold text-white/60">{t.upload.customSettings}</h3>
             <div className="space-y-4">
               <div>
                 <label className="mb-2 block text-xs font-medium text-white/40">
@@ -335,6 +336,7 @@ export function MockupUploadForm({
                   value={customModel}
                   onChange={(e) => setCustomModel(e.target.value)}
                   className={selectClass}
+                  style={{ colorScheme: "dark" }}
                 >
                   {CURATED_MODELS.map((m) => (
                     <option key={m.id} value={m.id}>
@@ -365,7 +367,7 @@ export function MockupUploadForm({
       <aside className="flex flex-col gap-5">
         <div className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-6">
           <h2 className="mb-1 text-sm font-semibold text-white/60">{f.choosePreset}</h2>
-          <p className="mb-5 text-xs text-white/25">Select the visual style for your mockup</p>
+          <p className="mb-5 text-xs text-white/25">{t.upload.presetDescription}</p>
 
           <div className="space-y-2">
             {PRESETS.filter((item) => variant === "d" || item.id !== "custom").map((item) => (
@@ -373,7 +375,7 @@ export function MockupUploadForm({
                 key={item.id}
                 className={`flex cursor-pointer items-start gap-3 rounded-xl border p-4 transition ${
                   preset === item.id
-                    ? "border-lime-400/30 bg-lime-400/[0.05]"
+                    ? "border-[#05DF72]/30 bg-[#05DF72]/[0.05]"
                     : "border-white/[0.07] bg-white/[0.01] hover:border-white/[0.12]"
                 }`}
               >
@@ -383,11 +385,11 @@ export function MockupUploadForm({
                   value={item.id}
                   checked={preset === item.id}
                   onChange={() => setPreset(item.id)}
-                  className="mt-0.5 accent-lime-400"
+                  className="mt-0.5 accent-[#05DF72]"
                 />
                 <div>
                   <div
-                    className={`font-semibold text-sm ${preset === item.id ? "text-lime-300" : "text-white/75"}`}
+                    className={`font-semibold text-sm ${preset === item.id ? "text-[#34e58a]" : "text-white/75"}`}
                   >
                     {item.name}
                   </div>
@@ -428,7 +430,7 @@ export function MockupUploadForm({
           type="button"
           onClick={handleSubmit}
           disabled={!canSubmit}
-          className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-lime-400 px-5 py-4 text-sm font-bold text-black transition hover:bg-lime-300 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40"
+          className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-[#05DF72] px-5 py-4 text-sm font-bold text-black transition hover:bg-[#34e58a] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40"
         >
           {isSubmitting || isUploadingFile ? (
             <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none" aria-hidden="true">

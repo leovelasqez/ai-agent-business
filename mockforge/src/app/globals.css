@@ -3,8 +3,8 @@
 :root {
   --background: #000000;
   --foreground: #ffffff;
-  --accent: #a3e635;
-  --accent-hover: #bef264;
+  --accent: #05DF72;
+  --accent-hover: #34e58a;
 }
 
 @theme inline {
@@ -116,7 +116,7 @@ a {
 
 /* ── Gradient text ───────────────────────────────────────────────────────── */
 .gradient-text {
-  background: linear-gradient(135deg, #a3e635 0%, #bef264 50%, #facc15 100%);
+  background: linear-gradient(135deg, #05DF72 0%, #34e58a 50%, #facc15 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;

@@ -8,6 +8,11 @@ export const translations: Record<Language, Record<string, any>> = {
     nav: {
       history: "History",
       generate: "Generate",
+      howItWorks: "How it works",
+      templates: "Templates",
+      startFree: "Start free",
+      switchToSpanish: "Switch to Spanish",
+      switchToEnglish: "Switch to English",
     },
 
     // Landing page
@@ -57,6 +62,10 @@ export const translations: Record<Language, Record<string, any>> = {
       back: "← Home",
       title: "Upload your product",
       description: "Upload a product image, choose a preset, and generate mockups ready to test in your store, ads, or content.",
+      badge: "New mockup",
+      productDetails: "Product details",
+      presetDescription: "Select the visual style for your mockup",
+      customSettings: "Custom model settings",
     },
 
     // Results page
@@ -231,6 +240,11 @@ export const translations: Record<Language, Record<string, any>> = {
       uploading: "· Uploading...",
       placeholder: "Preview will appear here when you select an image",
       hint: "Use a real product image. If you upload an empty, corrupted, or too small file, the system will reject it before generating.",
+      dropHere: "Drop your product image here",
+      releaseToUpload: "Release to upload",
+      replaceImage: "Replace image",
+      clickToBrowse: "Click to browse",
+      uploadingStatus: "Uploading...",
     },
 
     // Webview warning
@@ -247,6 +261,11 @@ export const translations: Record<Language, Record<string, any>> = {
     nav: {
       history: "Historial",
       generate: "Generar",
+      howItWorks: "Cómo funciona",
+      templates: "Templates",
+      startFree: "Empieza gratis",
+      switchToSpanish: "Cambiar a español",
+      switchToEnglish: "Cambiar a inglés",
     },
 
     // Landing page
@@ -296,6 +315,10 @@ export const translations: Record<Language, Record<string, any>> = {
       back: "← Inicio",
       title: "Sube tu producto",
       description: "Carga una imagen de tu producto, elige un preset y genera mockups listos para probar en tu tienda, anuncios o contenido.",
+      badge: "Nuevo mockup",
+      productDetails: "Detalles del producto",
+      presetDescription: "Selecciona el estilo visual para tu mockup",
+      customSettings: "Configuración del modelo personalizado",
     },
 
     // Results page
@@ -470,6 +493,11 @@ export const translations: Record<Language, Record<string, any>> = {
       uploading: "· Subiendo...",
       placeholder: "La vista previa aparecerá aquí cuando selecciones una imagen",
       hint: "Usa una imagen real del producto. Si subes un archivo vacío, corrupto o demasiado pequeño, el sistema lo va a rechazar antes de generar.",
+      dropHere: "Suelta aquí la imagen de tu producto",
+      releaseToUpload: "Suelta para subirla",
+      replaceImage: "Reemplazar imagen",
+      clickToBrowse: "Haz clic para buscar",
+      uploadingStatus: "Subiendo...",
     },
 
     // Webview warning

@@ -88,7 +88,7 @@ function FilePickerComponent({
         onDragLeave={handleDragLeave}
         className={`rounded-2xl border-2 border-dashed transition ${
           isDragging
-            ? "border-lime-400/50 bg-lime-400/[0.04]"
+            ? "border-[#05DF72]/50 bg-[#05DF72]/[0.04]"
             : "border-white/[0.08] bg-white/[0.015] hover:border-white/[0.15]"
         }`}
       >
@@ -107,7 +107,7 @@ function FilePickerComponent({
               className="absolute inset-0 flex cursor-pointer items-center justify-center bg-black/0 opacity-0 transition hover:bg-black/55 hover:opacity-100"
             >
               <span className="rounded-full border border-white/20 bg-black/70 px-4 py-2 text-sm font-semibold text-white backdrop-blur-sm">
-                Replace image
+                {fp.replaceImage}
               </span>
             </label>
           </div>
@@ -129,7 +129,7 @@ function FilePickerComponent({
                 <div
                   className={`flex h-14 w-14 items-center justify-center rounded-2xl border transition ${
                     isDragging
-                      ? "border-lime-400/30 bg-lime-400/10 text-lime-400"
+                      ? "border-[#05DF72]/30 bg-[#05DF72]/10 text-[#05DF72]"
                       : "border-white/[0.08] bg-white/[0.04] text-white/30"
                   }`}
                 >
@@ -154,13 +154,13 @@ function FilePickerComponent({
                 <div>
                   <p className="text-sm font-semibold text-white/55">
                     {isDragging ? (
-                      <span className="text-lime-400">Release to upload</span>
+                      <span className="text-[#05DF72]">{fp.releaseToUpload}</span>
                     ) : (
-                      "Drop your product image here"
+                      fp.dropHere
                     )}
                   </p>
                   <p className="mt-1 text-xs text-white/20">
-                    {fp.formats} · Click to browse
+                    {fp.formats} · {fp.clickToBrowse}
                   </p>
                 </div>
               </>
@@ -182,12 +182,12 @@ function FilePickerComponent({
       {/* Status line */}
       <div className="mt-2 flex items-center gap-2 text-xs">
         {isUploading ? (
-          <span className="flex items-center gap-1.5 text-lime-400">
-            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-lime-400" />
-            Uploading...
+          <span className="flex items-center gap-1.5 text-[#05DF72]">
+            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[#05DF72]" />
+            {fp.uploadingStatus}
           </span>
         ) : visibleSelectedFileName ? (
-          <span className="flex items-center gap-1.5 truncate text-lime-400">
+          <span className="flex items-center gap-1.5 truncate text-[#05DF72]">
             <svg
               width="12"
               height="12"
@@ -196,7 +196,7 @@ function FilePickerComponent({
               aria-hidden="true"
             >
               <circle cx="6" cy="6" r="5.5" className="fill-lime-400/20 stroke-lime-400" strokeWidth="1"/>
-              <path d="M3.5 6l2 2 3-3" stroke="#a3e635" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M3.5 6l2 2 3-3" stroke="#05DF72" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
             {visibleSelectedFileName}
           </span>

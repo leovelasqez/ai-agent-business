@@ -192,7 +192,7 @@ export function GenerationDetail({ generation }: GenerationDetailProps) {
 
           <Link
             href="/upload"
-            className="inline-flex items-center justify-center rounded-xl bg-lime-400 px-4 py-3 text-sm font-bold text-black transition hover:bg-lime-300 active:scale-[0.98]"
+            className="inline-flex items-center justify-center rounded-xl bg-[#05DF72] px-4 py-3 text-sm font-bold text-black transition hover:bg-[#34e58a] active:scale-[0.98]"
           >
             {h.newGeneration}
           </Link>

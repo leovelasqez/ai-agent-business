@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { translations, type Language, type Translations } from "@/lib/i18n";
 
 interface LanguageContextValue {
@@ -9,32 +9,42 @@ interface LanguageContextValue {
   t: Translations;
 }
 
+const LANGUAGE_STORAGE_KEY = "mockforge-lang";
+
 const LanguageContext = createContext<LanguageContextValue>({
   language: "en",
   setLanguage: () => {},
   t: translations.en,
 });
 
+function getInitialLanguage(): Language {
+  if (typeof window === "undefined") return "en";
+
+  const stored = window.localStorage.getItem(LANGUAGE_STORAGE_KEY);
+  if (stored === "en" || stored === "es") return stored;
+
+  const browserLanguage = window.navigator.language.toLowerCase();
+  return browserLanguage.startsWith("es") ? "es" : "en";
+}
+
 export function LanguageProvider({ children }: { children: React.ReactNode }) {
-  const [language, setLanguageState] = useState<Language>("en");
+  const [language, setLanguageState] = useState<Language>(getInitialLanguage);
 
   useEffect(() => {
-    const stored = localStorage.getItem("mockforge-lang");
-    if (stored === "en" || stored === "es") {
-      setLanguageState(stored);
-    }
-  }, []);
+    document.documentElement.lang = language;
+    window.localStorage.setItem(LANGUAGE_STORAGE_KEY, language);
+  }, [language]);
 
   const setLanguage = useCallback((lang: Language) => {
     setLanguageState(lang);
-    localStorage.setItem("mockforge-lang", lang);
   }, []);
 
-  return (
-    <LanguageContext.Provider value={{ language, setLanguage, t: translations[language] }}>
-      {children}
-    </LanguageContext.Provider>
+  const value = useMemo(
+    () => ({ language, setLanguage, t: translations[language] }),
+    [language, setLanguage],
   );
+
+  return <LanguageContext.Provider value={value}>{children}</LanguageContext.Provider>;
 }
 
 export function useLanguage() {

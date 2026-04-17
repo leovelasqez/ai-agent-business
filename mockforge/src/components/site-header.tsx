@@ -5,7 +5,7 @@ import { useState } from "react";
 import { useLanguage } from "@/lib/language-context";
 
 export function SiteHeader() {
-  const { language, setLanguage } = useLanguage();
+  const { language, setLanguage, t } = useLanguage();
   const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
@@ -18,7 +18,7 @@ export function SiteHeader() {
           className="flex items-center gap-2.5"
           onClick={() => setMobileOpen(false)}
         >
-          <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-lime-400">
+          <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-[#05DF72]">
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
               <rect x="1.5" y="1.5" width="5.5" height="5.5" rx="1.2" fill="black" opacity="0.8"/>
               <rect x="9" y="1.5" width="5.5" height="5.5" rx="1.2" fill="black" opacity="0.8"/>
@@ -27,29 +27,29 @@ export function SiteHeader() {
             </svg>
           </div>
           <span className="text-[15px] font-black tracking-tight text-white">
-            Mock<span className="text-lime-400">Forge</span>
+            Mock<span className="text-[#05DF72]">Forge</span>
           </span>
         </Link>
 
         {/* Desktop nav */}
         <nav className="hidden items-center gap-0.5 md:flex">
-          <a
+          <Link
             href="/#how-it-works"
             className="rounded-lg px-3.5 py-2 text-sm text-white/45 transition hover:bg-white/[0.05] hover:text-white"
           >
-            How it works
-          </a>
-          <a
+            {t.nav.howItWorks}
+          </Link>
+          <Link
             href="/#templates"
             className="rounded-lg px-3.5 py-2 text-sm text-white/45 transition hover:bg-white/[0.05] hover:text-white"
           >
-            Templates
-          </a>
+            {t.nav.templates}
+          </Link>
           <Link
             href="/history"
             className="rounded-lg px-3.5 py-2 text-sm text-white/45 transition hover:bg-white/[0.05] hover:text-white"
           >
-            History
+            {t.nav.history}
           </Link>
         </nav>
 
@@ -59,16 +59,16 @@ export function SiteHeader() {
             type="button"
             onClick={() => setLanguage(language === "en" ? "es" : "en")}
             className="hidden rounded-lg px-2.5 py-1.5 text-xs font-semibold text-white/25 transition hover:bg-white/[0.05] hover:text-white/60 md:block"
-            aria-label="Toggle language"
+            aria-label={language === "en" ? t.nav.switchToSpanish : t.nav.switchToEnglish}
           >
             {language === "en" ? "ES" : "EN"}
           </button>
 
           <Link
             href="/upload"
-            className="rounded-full bg-lime-400 px-5 py-2 text-sm font-bold text-black transition hover:bg-lime-300 active:scale-95"
+            className="rounded-full bg-[#05DF72] px-5 py-2 text-sm font-bold text-black transition hover:bg-[#34e58a] active:scale-95"
           >
-            Start free
+            {t.nav.startFree}
           </Link>
 
           {/* Mobile hamburger */}
@@ -95,26 +95,26 @@ export function SiteHeader() {
       {mobileOpen && (
         <div className="border-t border-white/[0.06] bg-black/95 px-5 pb-5 pt-3 md:hidden">
           <nav className="flex flex-col">
-            <a
+            <Link
               href="/#how-it-works"
               onClick={() => setMobileOpen(false)}
               className="rounded-xl px-4 py-3 text-sm text-white/60 transition hover:bg-white/[0.04] hover:text-white"
             >
-              How it works
-            </a>
-            <a
+              {t.nav.howItWorks}
+            </Link>
+            <Link
               href="/#templates"
               onClick={() => setMobileOpen(false)}
               className="rounded-xl px-4 py-3 text-sm text-white/60 transition hover:bg-white/[0.04] hover:text-white"
             >
-              Templates
-            </a>
+              {t.nav.templates}
+            </Link>
             <Link
               href="/history"
               onClick={() => setMobileOpen(false)}
               className="rounded-xl px-4 py-3 text-sm text-white/60 transition hover:bg-white/[0.04] hover:text-white"
             >
-              History
+              {t.nav.history}
             </Link>
             <div className="mt-3 border-t border-white/[0.06] pt-3">
               <button
@@ -125,7 +125,7 @@ export function SiteHeader() {
                 }}
                 className="rounded-xl px-4 py-3 text-sm text-white/35 transition hover:bg-white/[0.04] hover:text-white/60"
               >
-                {language === "en" ? "Switch to Spanish" : "Switch to English"}
+                {language === "en" ? t.nav.switchToSpanish : t.nav.switchToEnglish}
               </button>
             </div>
           </nav>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import { useLanguage } from "@/lib/language-context";
 
 function detectEmbeddedBrowser() {
@@ -12,11 +12,7 @@ function detectEmbeddedBrowser() {
 export function WebviewWarning() {
   const { t } = useLanguage();
   const w = t.webviewWarning;
-  const [isEmbeddedBrowser, setIsEmbeddedBrowser] = useState(false);
-
-  useEffect(() => {
-    setIsEmbeddedBrowser(detectEmbeddedBrowser());
-  }, []);
+  const isEmbeddedBrowser = detectEmbeddedBrowser();
 
   const directUrl = useMemo(() => {
     if (typeof window === "undefined") return "";

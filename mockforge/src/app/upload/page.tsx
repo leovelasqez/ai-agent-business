@@ -53,7 +53,7 @@ function UploadPageInner() {
         {/* Page header */}
         <div className="mb-10">
           <div className="mb-2 text-xs font-semibold uppercase tracking-[0.28em] text-white/20">
-            New mockup
+            {t.upload.badge}
           </div>
           <h1 className="text-3xl font-black tracking-tight md:text-4xl">
             {t.upload.title}
