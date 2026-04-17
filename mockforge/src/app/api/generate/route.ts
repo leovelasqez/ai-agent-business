@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { runGeneration } from "@/lib/image-provider";
 import { insertGeneration } from "@/lib/db/generations";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limiter";
+import { mapProviderError } from "@/lib/errors";
 import type { PresetId } from "@/lib/presets";
 
 export async function POST(request: Request) {
@@ -88,11 +89,7 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown provider error";
-    const friendlyMessage = message.includes("ENOENT")
-      ? "The source image was not found on the server. Upload it again and retry."
-      : message.includes("Load failed") || message.includes("Failed to fetch")
-        ? "The generation request could not reach the server cleanly. Retry in a normal browser like Chrome or Safari."
-        : "Image generation failed.";
+    const friendlyMessage = mapProviderError(message);
 
     console.error("[generate] generation failed", {
       preset,
