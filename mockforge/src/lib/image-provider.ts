@@ -26,7 +26,37 @@ export interface RunGenerationResult {
   variantLabel: string;
 }
 
+// Safe filename: no path separators, no dots leading a segment
+const SAFE_UPLOAD_FILENAME = /^[a-zA-Z0-9][\w.-]*$/;
+
+function validateSourceImageUrl(url: string): void {
+  // Local upload path
+  if (url.startsWith("/api/uploads/")) {
+    const fileName = url.slice("/api/uploads/".length);
+    if (!SAFE_UPLOAD_FILENAME.test(fileName) || fileName.includes("..")) {
+      throw new Error("Invalid sourceImageUrl: unsafe local path.");
+    }
+    return;
+  }
+
+  // External URL: must be HTTPS to prevent MITM and HTTP-downgrade abuse
+  let parsed: URL;
+  try {
+    parsed = new URL(url);
+  } catch {
+    throw new Error("Invalid sourceImageUrl: not a valid URL.");
+  }
+
+  if (parsed.protocol !== "https:") {
+    throw new Error("Invalid sourceImageUrl: only HTTPS external URLs are allowed.");
+  }
+}
+
 export async function runGeneration(input: RunGenerationInput): Promise<RunGenerationResult> {
+  if (input.sourceImageUrl) {
+    validateSourceImageUrl(input.sourceImageUrl);
+  }
+
   const provider = process.env.IMAGE_PROVIDER || "fal";
 
   if (provider === "fal") {

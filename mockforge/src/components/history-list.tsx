@@ -34,9 +34,11 @@ function formatDate(iso: string, lang: string) {
 
 interface HistoryListProps {
   generations: Generation[];
+  page?: number;
+  hasMore?: boolean;
 }
 
-export function HistoryList({ generations }: HistoryListProps) {
+export function HistoryList({ generations, page = 1, hasMore = false }: HistoryListProps) {
   const { t, language } = useLanguage();
   const h = t.history;
 
@@ -52,7 +54,7 @@ export function HistoryList({ generations }: HistoryListProps) {
         </div>
         <Link
           href="/upload"
-          className="inline-flex items-center gap-1.5 rounded-full bg-lime-400 px-5 py-2 text-sm font-bold text-black transition hover:bg-lime-300"
+          className="inline-flex items-center gap-1.5 rounded-full bg-[#05DF72] px-5 py-2 text-sm font-bold text-black transition hover:bg-[#34e58a]"
         >
           {h.newGeneration}
         </Link>
@@ -180,6 +182,29 @@ export function HistoryList({ generations }: HistoryListProps) {
               </Link>
             );
           })}
+        </div>
+      )}
+
+      {/* Pagination */}
+      {(page > 1 || hasMore) && (
+        <div className="flex items-center justify-center gap-3 pt-2">
+          {page > 1 && (
+            <Link
+              href={`/history?page=${page - 1}`}
+              className="inline-flex items-center gap-1.5 rounded-full border border-white/[0.1] px-5 py-2 text-sm font-medium text-white/60 transition hover:border-white/20 hover:text-white"
+            >
+              ← Previous
+            </Link>
+          )}
+          <span className="text-xs text-white/20">Page {page}</span>
+          {hasMore && (
+            <Link
+              href={`/history?page=${page + 1}`}
+              className="inline-flex items-center gap-1.5 rounded-full border border-white/[0.1] px-5 py-2 text-sm font-medium text-white/60 transition hover:border-white/20 hover:text-white"
+            >
+              Next →
+            </Link>
+          )}
         </div>
       )}
     </div>

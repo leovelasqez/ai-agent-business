@@ -257,6 +257,7 @@ export function ResultsView({
   const [status, setStatus] = useState<GenerationStatus>("processing");
   const [previewUrls, setPreviewUrls] = useState<string[]>([]);
   const [generationId, setGenerationId] = useState<string | null>(null);
+  const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const defaultVariantLabel = VARIANT_LABELS[variant] ?? variant;
   const [variantLabel, setVariantLabel] =
@@ -278,6 +279,27 @@ export function ResultsView({
   const isCompareMode = Boolean(
     compareVariants && compareVariants.length >= 2,
   );
+
+  async function startCheckout(pkg: "single" | "bundle") {
+    setCheckoutLoading(pkg);
+    try {
+      const res = await fetch("/api/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ generationId, package: pkg }),
+      });
+      const json = await res.json() as { ok: boolean; data?: { checkoutUrl?: string }; message?: string };
+      if (json.ok && json.data?.checkoutUrl) {
+        window.location.href = json.data.checkoutUrl;
+      } else {
+        alert(json.message ?? "Could not start checkout. Please try again.");
+      }
+    } catch {
+      alert("Could not connect to payment server. Please try again.");
+    } finally {
+      setCheckoutLoading(null);
+    }
+  }
 
   useEffect(() => {
     if (isCompareMode) return;
@@ -461,7 +483,7 @@ export function ResultsView({
                   href={primaryPreview}
                   target="_blank"
                   rel="noreferrer"
-                  className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-lime-400 px-5 py-2.5 text-sm font-bold text-black transition hover:bg-lime-300"
+                  className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-[#05DF72] px-5 py-2.5 text-sm font-bold text-black transition hover:bg-[#34e58a]"
                 >
                   {rv.openBest}
                 </a>
@@ -644,15 +666,20 @@ export function ResultsView({
             </p>
           </div>
           <div className="flex flex-col gap-3 sm:flex-row">
-            <button className="rounded-xl border border-white/[0.1] px-5 py-2.5 text-sm font-medium text-white/60 transition hover:border-white/20 hover:text-white">
-              {rv.upsell.pack}
-            </button>
-            <Link
-              href="/success"
-              className="rounded-xl bg-lime-400 px-5 py-2.5 text-center text-sm font-bold text-black transition hover:bg-lime-300"
+            <button
+              onClick={() => startCheckout("single")}
+              disabled={checkoutLoading !== null}
+              className="rounded-xl border border-white/[0.1] px-5 py-2.5 text-sm font-medium text-white/60 transition hover:border-white/20 hover:text-white disabled:opacity-50"
             >
-              {rv.upsell.bundle}
-            </Link>
+              {checkoutLoading === "single" ? "Redirecting…" : rv.upsell.pack}
+            </button>
+            <button
+              onClick={() => startCheckout("bundle")}
+              disabled={checkoutLoading !== null}
+              className="rounded-xl bg-[#05DF72] px-5 py-2.5 text-sm font-bold text-black transition hover:bg-[#34e58a] disabled:opacity-50"
+            >
+              {checkoutLoading === "bundle" ? "Redirecting…" : rv.upsell.bundle}
+            </button>
           </div>
         </div>
       </section>

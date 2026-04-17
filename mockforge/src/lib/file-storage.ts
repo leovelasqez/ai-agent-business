@@ -1,4 +1,4 @@
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, writeFile, readdir, stat, unlink } from "node:fs/promises";
 import path from "node:path";
 
 const uploadsDir = path.join(process.cwd(), "public", "uploads");
@@ -57,4 +57,31 @@ export async function downloadImageToLocal(url: string, fileNamePrefix = "genera
   const extension = contentType.includes("png") ? "png" : contentType.includes("webp") ? "webp" : "jpg";
 
   return saveBufferToLocal(Buffer.from(arrayBuffer), `${fileNamePrefix}.${extension}`);
+}
+
+/**
+ * Delete files in public/uploads/ that are older than maxAgeMs milliseconds.
+ * Returns the number of files deleted.
+ */
+export async function cleanOldUploads(maxAgeMs: number): Promise<number> {
+  await ensureUploadsDir();
+
+  const entries = await readdir(uploadsDir);
+  const cutoff = Date.now() - maxAgeMs;
+  let deleted = 0;
+
+  for (const name of entries) {
+    const filePath = path.join(uploadsDir, name);
+    try {
+      const info = await stat(filePath);
+      if (info.isFile() && info.mtimeMs < cutoff) {
+        await unlink(filePath);
+        deleted++;
+      }
+    } catch {
+      // Skip files that disappeared between readdir and stat
+    }
+  }
+
+  return deleted;
 }

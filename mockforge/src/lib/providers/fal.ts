@@ -89,14 +89,39 @@ function getEffectiveVariantForModel(variant: "a" | "b" | "c" | "d", customModel
   return "a";
 }
 
+/**
+ * Calls fal-ai/imageutils/rembg to remove the background from an image and
+ * returns a PNG URL where the product is opaque and the background is transparent.
+ * That PNG can be passed as mask_url to GPT Image 1: transparent areas are edited
+ * (background replacement), opaque areas are preserved (product).
+ * Returns null on any failure so callers can fall back to unmasked editing.
+ */
+async function getRembgMaskUrl(imageUrl: string): Promise<string | null> {
+  try {
+    const result = await fal.subscribe("fal-ai/imageutils/rembg", {
+      input: { image_url: imageUrl },
+      logs: false,
+    });
+    const url = (result.data as { image?: { url?: string } }).image?.url;
+    return url ?? null;
+  } catch (err) {
+    console.warn(
+      "[fal] rembg failed, proceeding without mask:",
+      err instanceof Error ? err.message : err,
+    );
+    return null;
+  }
+}
+
 function buildFalInput(
   effectiveVariant: "a" | "b" | "c",
   prompt: string,
   resolvedImageUrl: string,
   format: string | undefined,
+  maskUrl?: string | null,
 ) {
   if (effectiveVariant === "b") {
-    return {
+    const base: Record<string, unknown> = {
       prompt,
       image_urls: [resolvedImageUrl],
       input_fidelity: "high",
@@ -105,6 +130,8 @@ function buildFalInput(
       quality: "high",
       image_size: mapFormatToGptImageSize(format),
     };
+    if (maskUrl) base.mask_url = maskUrl;
+    return base;
   }
 
   if (effectiveVariant === "c") {
@@ -151,7 +178,14 @@ export async function runFalGeneration(input: RunGenerationInput): Promise<RunGe
     throw new Error("sourceImageUrl is required for fal image editing");
   }
 
-  const falInput = buildFalInput(effectiveVariant, prompt, resolvedImageUrl, input.format);
+  // For GPT Image 1 (variant b): obtain a rembg mask so the product is preserved
+  // and only the background is edited. Falls back to unmasked if rembg fails.
+  let maskUrl: string | null = null;
+  if (effectiveVariant === "b") {
+    maskUrl = await getRembgMaskUrl(resolvedImageUrl);
+  }
+
+  const falInput = buildFalInput(effectiveVariant, prompt, resolvedImageUrl, input.format, maskUrl);
 
   let result;
 

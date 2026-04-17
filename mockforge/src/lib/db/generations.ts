@@ -20,6 +20,7 @@ export interface NewGeneration {
   preview_urls: string[];
   provider?: string;
   status?: string;
+  session_id?: string;
 }
 
 interface GenerationRow {
@@ -85,6 +86,7 @@ export async function insertGeneration(record: NewGeneration): Promise<string | 
         preview_urls: record.preview_urls,
         provider: record.provider ?? "fal",
         status: record.status ?? "completed",
+        session_id: record.session_id ?? null,
       })
       .select("id")
       .single();
@@ -106,7 +108,8 @@ export async function insertGeneration(record: NewGeneration): Promise<string | 
  * Returns an empty array when Supabase is not configured or the query fails.
  */
 export async function getRecentGenerations(
-  limit = 30,
+  limit = 24,
+  offset = 0,
 ): Promise<(MockupGeneration & { model: string; variant: string })[]> {
   if (!isSupabaseConfigured()) return [];
 
@@ -118,7 +121,7 @@ export async function getRecentGenerations(
         "id, preset, category, format, product_name, variant, model, prompt, source_image_url, preview_urls, provider, status, created_at, rating",
       )
       .order("created_at", { ascending: false })
-      .limit(limit);
+      .range(offset, offset + limit - 1);
 
     if (error) {
       console.error("[db] getRecentGenerations failed:", error.message);

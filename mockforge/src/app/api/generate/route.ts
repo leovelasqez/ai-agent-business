@@ -1,9 +1,20 @@
 import { NextResponse } from "next/server";
 import { runGeneration } from "@/lib/image-provider";
 import { insertGeneration } from "@/lib/db/generations";
+import { checkRateLimit, getClientIp } from "@/lib/rate-limiter";
 import type { PresetId } from "@/lib/presets";
 
 export async function POST(request: Request) {
+  const sessionId =
+    request.headers.get("cookie")?.match(/mf_session=([^;]+)/)?.[1] ?? getClientIp(request);
+  const rl = checkRateLimit(`generate:${sessionId}`, 5, 60_000);
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { ok: false, error: "RATE_LIMITED", message: "Too many generation requests. Please wait a moment." },
+      { status: 429, headers: { "Retry-After": String(Math.ceil(rl.retryAfterMs / 1000)) } },
+    );
+  }
+
   const body = await request.json().catch(() => ({}));
 
   const preset = (body?.preset ?? "clean_studio") as PresetId;
@@ -53,6 +64,7 @@ export async function POST(request: Request) {
         preview_urls: result.previewUrls,
         provider: result.provider,
         status: result.status,
+        session_id: sessionId.length < 100 ? sessionId : undefined,
       })) ?? crypto.randomUUID();
 
     return NextResponse.json({
@@ -76,7 +88,6 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown provider error";
-    const details = message;
     const friendlyMessage = message.includes("ENOENT")
       ? "The source image was not found on the server. Upload it again and retry."
       : message.includes("Load failed") || message.includes("Failed to fetch")
@@ -95,7 +106,6 @@ export async function POST(request: Request) {
         ok: false,
         error: "IMAGE_GENERATION_FAILED",
         message: friendlyMessage,
-        details,
       },
       { status: 500 },
     );

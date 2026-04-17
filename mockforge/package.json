@@ -10,7 +10,8 @@
     "test:file-storage": "node --import tsx src/lib/file-storage.test.ts",
     "test:model-config": "node --import tsx src/lib/model-config.test.ts",
     "test:storage-provider": "node --import tsx src/lib/storage-provider.test.ts",
-    "test": "npm run test:file-storage && npm run test:model-config && npm run test:storage-provider"
+    "test": "npm run test:file-storage && npm run test:model-config && npm run test:storage-provider",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "@fal-ai/client": "^1.9.5",
@@ -18,9 +19,11 @@
     "next": "16.2.2",
     "react": "19.2.4",
     "react-dom": "19.2.4",
-    "replicate": "^1.4.0"
+    "replicate": "^1.4.0",
+    "stripe": "^22.0.2"
   },
   "devDependencies": {
+    "@playwright/test": "^1.59.1",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
