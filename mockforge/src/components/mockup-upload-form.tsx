@@ -115,6 +115,11 @@ export function MockupUploadForm({
     });
   };
 
+  const enableBatchAll = () => {
+    setCompareMode(true);
+    setCompareVariants(new Set(["a", "b", "c"]));
+  };
+
   const handleSubmit = async () => {
     setIsSubmitting(true);
     setError(null);
@@ -269,19 +274,29 @@ export function MockupUploadForm({
 
         {/* Model selector card */}
         <div className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-6">
-          <div className="mb-4 flex items-center justify-between">
+          <div className="mb-4 flex items-center justify-between gap-2">
             <h3 className="text-sm font-semibold text-white/60">{f.modelMode}</h3>
-            <button
-              type="button"
-              onClick={() => setCompareMode((v) => !v)}
-              className={`rounded-full border px-3 py-1 text-xs font-medium transition ${
-                compareMode
-                  ? "border-[#05DF72]/40 bg-[#05DF72]/10 text-[#05DF72]"
-                  : "border-white/[0.08] bg-white/[0.03] text-white/35 hover:border-white/[0.15] hover:text-white/60"
-              }`}
-            >
-              {compareMode ? f.comparingVariants : f.compareVariants}
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={enableBatchAll}
+                className="rounded-full border border-[#05DF72]/30 bg-[#05DF72]/[0.07] px-3 py-1 text-xs font-medium text-[#05DF72] transition hover:bg-[#05DF72]/[0.12]"
+                title="Generate all 3 variants in parallel"
+              >
+                {f.batchAll ?? "Batch A+B+C"}
+              </button>
+              <button
+                type="button"
+                onClick={() => setCompareMode((v) => !v)}
+                className={`rounded-full border px-3 py-1 text-xs font-medium transition ${
+                  compareMode
+                    ? "border-[#05DF72]/40 bg-[#05DF72]/10 text-[#05DF72]"
+                    : "border-white/[0.08] bg-white/[0.03] text-white/35 hover:border-white/[0.15] hover:text-white/60"
+                }`}
+              >
+                {compareMode ? f.comparingVariants : f.compareVariants}
+              </button>
+            </div>
           </div>
 
           {compareMode ? (

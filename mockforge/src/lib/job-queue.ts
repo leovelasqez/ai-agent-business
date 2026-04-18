@@ -1,6 +1,7 @@
 import { insertGeneration } from "@/lib/db/generations";
 import { runGeneration, type GenerationVariant } from "@/lib/image-provider";
 import { incrementMetric } from "@/lib/metrics";
+import { recordGenerationLatency, type KnownRegion } from "@/lib/region";
 import type { PresetId } from "@/lib/presets";
 
 export interface GenerationJobInput {
@@ -13,6 +14,7 @@ export interface GenerationJobInput {
   customModel?: string;
   customPrompt?: string;
   sessionId?: string;
+  region?: KnownRegion;
 }
 
 export interface GenerationJobState {
@@ -66,9 +68,11 @@ export function enqueueGenerationJob(input: GenerationJobInput) {
     if (!current) return;
 
     setJob({ ...current, status: "processing", updatedAt: new Date().toISOString() });
+    const startMs = Date.now();
 
     try {
       const result = await runGeneration(input);
+      recordGenerationLatency(input.region ?? "global", Date.now() - startMs);
       const generationId =
         (await insertGeneration({
           preset: input.preset,

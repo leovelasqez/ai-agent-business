@@ -164,22 +164,22 @@ Plan priorizado para ejecutar a lo largo de varias sesiones. Cada item incluye a
 
 ## 🟣 Fase 6 — Diferenciación técnica
 
-### [ ] 24. Preservación de producto con masking automático
+### [x] 24. Preservación de producto con masking automático
 - Extender masked editing (item 7) a variantes A y B cuando detecte texto en empaque
 - OCR con `fal-ai/any-llm/vision` para decidir si aplicar mask
 - Comparar calidad con/sin máscara por variante (A/B interno)
 
-### [ ] 25. Batch de generación
+### [x] 25. Batch de generación
 - Un upload → las 3 variantes en paralelo por default (reduce fricción de elegir)
 - Grilla comparativa con elección final y rating
 - Precio diferenciado por batch vs individual
 
-### [ ] 26. Video corto (MP4/GIF)
+### [x] 26. Video corto (MP4/GIF)
 - Pan/zoom del mockup generado con `fal-ai/kling-video` o similar
 - Entregable 3-5s para redes sociales
 - Nuevo tipo de output en DB (`kind: 'image' | 'video'`)
 
-### [ ] 27. API pública
+### [x] 27. API pública
 - Endpoint `/api/v1/generate` con API keys por usuario
 - Rate limit por key, facturación por uso
 - Docs OpenAPI generadas
@@ -188,27 +188,27 @@ Plan priorizado para ejecutar a lo largo de varias sesiones. Cada item incluye a
 
 ## ⚫ Fase 7 — Escalamiento
 
-### [ ] 28. CDN para assets
+### [x] 28. CDN para assets
 - Migrar `public/uploads/` a CDN (Cloudflare R2 + Workers o Bunny)
 - Invalidación por TTL
 - Reduce carga del VPS y mejora latencia global
 
-### [ ] 29. Multi-región para generación
+### [x] 29. Multi-región para generación
 - Queue distribuida por región (item 16) con workers cercanos al usuario
 - Fallback entre regiones si una saturada
 - Medir p95 de latencia por región
 
-### [ ] 30. Cost controls
+### [x] 30. Cost controls
 - Dashboard interno de gasto diario en fal.ai por variante
 - Alertas cuando gasto/día > umbral
 - Kill switch automático si excede presupuesto mensual
 
-### [ ] 31. DB hardening
+### [x] 31. DB hardening
 - Read replicas Supabase para `/api/result/[id]` y historial
 - Backups verificados (restore test mensual)
 - Soft delete con retención configurable (GDPR)
 
-### [ ] 32. i18n completa
+### [x] 32. i18n completa
 - Extender EN/ES actual a FR, PT, DE
 - Detección por `Accept-Language` + override manual
 - Prompts localizados si afectan calidad del output

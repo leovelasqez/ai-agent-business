@@ -18,8 +18,9 @@ function getEnv(key: string): string {
   return value;
 }
 
-// Lazy singleton — created once per process, not per request.
+// Lazy singletons — created once per process, not per request.
 let _serviceClient: SupabaseClient | null = null;
+let _readClient: SupabaseClient | null = null;
 
 export function getSupabaseServiceClient(): SupabaseClient {
   if (_serviceClient) return _serviceClient;
@@ -36,6 +37,26 @@ export function getSupabaseServiceClient(): SupabaseClient {
   );
 
   return _serviceClient;
+}
+
+/**
+ * Returns a read-optimized client.
+ * When SUPABASE_READ_REPLICA_URL is set, queries are sent to the read replica
+ * so the primary DB handles writes only. Falls back to the primary if unset.
+ */
+export function getSupabaseReadClient(): SupabaseClient {
+  if (_readClient) return _readClient;
+
+  const replicaUrl = process.env.SUPABASE_READ_REPLICA_URL;
+  if (replicaUrl) {
+    _readClient = createClient(replicaUrl, getEnv("SUPABASE_SERVICE_ROLE_KEY"), {
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
+  } else {
+    _readClient = getSupabaseServiceClient();
+  }
+
+  return _readClient;
 }
 
 /**

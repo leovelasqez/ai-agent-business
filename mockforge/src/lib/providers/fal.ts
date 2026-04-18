@@ -91,7 +91,7 @@ function getEffectiveVariantForModel(variant: "a" | "b" | "c" | "d", customModel
 /**
  * Calls fal-ai/imageutils/rembg to remove the background from an image and
  * returns a PNG URL where the product is opaque and the background is transparent.
- * That PNG can be passed as mask_url to GPT Image 1: transparent areas are edited
+ * That PNG can be passed as mask_url to edit endpoints: transparent areas are edited
  * (background replacement), opaque areas are preserved (product).
  * Returns null on any failure so callers can fall back to unmasked editing.
  */
@@ -109,6 +109,35 @@ async function getRembgMaskUrl(imageUrl: string): Promise<string | null> {
       err instanceof Error ? err.message : err,
     );
     return null;
+  }
+}
+
+/**
+ * Uses fal-ai/any-llm/vision to detect whether the product image contains
+ * visible text on its packaging (label, brand name, ingredients, etc.).
+ * Returns true if text is detected so callers can apply masking to preserve it.
+ * Returns false on any failure to avoid blocking generation.
+ */
+async function hasPackagingText(imageUrl: string): Promise<boolean> {
+  try {
+    const result = await fal.subscribe("fal-ai/any-llm/vision", {
+      input: {
+        model: "google/gemini-flash-1-5-8b",
+        prompt:
+          "Does this product image contain visible text on the packaging, label, or product itself? " +
+          "Answer with only 'yes' or 'no'.",
+        image_url: imageUrl,
+      },
+      logs: false,
+    });
+    const output = (result.data as { output?: string }).output ?? "";
+    return output.trim().toLowerCase().startsWith("yes");
+  } catch (err) {
+    console.warn(
+      "[fal] OCR text detection failed, skipping mask:",
+      err instanceof Error ? err.message : err,
+    );
+    return false;
   }
 }
 
@@ -134,17 +163,19 @@ function buildFalInput(
   }
 
   if (effectiveVariant === "c") {
-    return {
+    const base: Record<string, unknown> = {
       prompt,
       image_urls: [resolvedImageUrl],
       output_format: "jpeg",
       image_size: mapFormatToSize(format, "c"),
       enable_safety_checker: true,
     };
+    if (maskUrl) base.mask_url = maskUrl;
+    return base;
   }
 
   // variant "a" — Nano Banana 2
-  return {
+  const base: Record<string, unknown> = {
     prompt,
     image_urls: [resolvedImageUrl],
     output_format: "jpeg",
@@ -152,6 +183,8 @@ function buildFalInput(
     aspect_ratio: mapFormatToSize(format, "a"),
     resolution: "1K",
   };
+  if (maskUrl) base.mask_url = maskUrl;
+  return base;
 }
 
 export async function runFalGeneration(input: RunGenerationInput): Promise<RunGenerationResult> {
@@ -177,10 +210,11 @@ export async function runFalGeneration(input: RunGenerationInput): Promise<RunGe
     throw new Error("sourceImageUrl is required for fal image editing");
   }
 
-  // For GPT Image 1 (variant b): obtain a rembg mask so the product is preserved
-  // and only the background is edited. Falls back to unmasked if rembg fails.
+  // Detect packaging text via OCR; if present, apply rembg mask to preserve product
+  // text across all edit variants. Falls back to unmasked if either step fails.
   let maskUrl: string | null = null;
-  if (effectiveVariant === "b") {
+  const shouldMask = effectiveVariant === "b" || (await hasPackagingText(resolvedImageUrl));
+  if (shouldMask) {
     maskUrl = await getRembgMaskUrl(resolvedImageUrl);
   }
 

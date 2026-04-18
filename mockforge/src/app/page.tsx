@@ -9,7 +9,9 @@ import type { Language } from "@/lib/i18n";
 
 const BRANDS = ["Shopify", "WooCommerce", "Etsy", "Amazon", "BigCommerce", "Squarespace", "Wix"];
 
-const copy: Record<Language, any> = {
+type LandingLanguage = "en" | "es";
+
+const copy: Record<LandingLanguage, any> = {
   en: {
     stats: [
       { value: "12,847+", label: "Mockups generated" },
@@ -188,7 +190,8 @@ function IconBox() {
 
 export default function Home() {
   const { language } = useLanguage();
-  const c = copy[language];
+  const landingLang: LandingLanguage = language === "es" ? "es" : "en";
+  const c = copy[landingLang];
 
   return (
     <div className="min-h-screen bg-black text-white">

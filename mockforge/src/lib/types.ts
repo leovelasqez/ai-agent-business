@@ -1,5 +1,7 @@
 export type GenerationStatus = "idle" | "processing" | "completed" | "failed";
 
+export type OutputKind = "image" | "video";
+
 export interface MockupGeneration {
   id: string;
   preset: string;
@@ -14,4 +16,5 @@ export interface MockupGeneration {
   prompt?: string;
   provider?: string;
   rating?: number | null;
+  kind?: OutputKind;
 }

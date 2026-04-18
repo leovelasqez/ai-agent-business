@@ -5,8 +5,8 @@
  * without a database connection (local-only mode).
  */
 
-import { getSupabaseServiceClient, isSupabaseConfigured } from "@/lib/supabase";
-import type { MockupGeneration } from "@/lib/types";
+import { getSupabaseServiceClient, getSupabaseReadClient, isSupabaseConfigured } from "@/lib/supabase";
+import type { MockupGeneration, OutputKind } from "@/lib/types";
 
 export interface NewGeneration {
   preset: string;
@@ -21,6 +21,7 @@ export interface NewGeneration {
   provider?: string;
   status?: string;
   session_id?: string;
+  kind?: OutputKind;
 }
 
 interface GenerationRow {
@@ -38,6 +39,7 @@ interface GenerationRow {
   status: "completed" | "failed" | "processing" | "idle";
   created_at: string;
   rating: number | null;
+  kind: OutputKind | null;
 }
 
 function mapGenerationRow(row: GenerationRow): MockupGeneration & {
@@ -60,6 +62,7 @@ function mapGenerationRow(row: GenerationRow): MockupGeneration & {
     model: row.model,
     variant: row.variant,
     rating: row.rating ?? null,
+    kind: row.kind ?? "image",
   };
 }
 
@@ -87,6 +90,7 @@ export async function insertGeneration(record: NewGeneration): Promise<string | 
         provider: record.provider ?? "fal",
         status: record.status ?? "completed",
         session_id: record.session_id ?? null,
+        kind: record.kind ?? "image",
       })
       .select("id")
       .single();
@@ -114,12 +118,13 @@ export async function getRecentGenerations(
   if (!isSupabaseConfigured()) return [];
 
   try {
-    const supabase = getSupabaseServiceClient();
+    const supabase = getSupabaseReadClient();
     const { data, error } = await supabase
       .from("generations")
       .select(
-        "id, preset, category, format, product_name, variant, model, prompt, source_image_url, preview_urls, provider, status, created_at, rating",
+        "id, preset, category, format, product_name, variant, model, prompt, source_image_url, preview_urls, provider, status, created_at, rating, kind",
       )
+      .is("deleted_at", null)
       .order("created_at", { ascending: false })
       .range(offset, offset + limit - 1);
 
@@ -143,13 +148,14 @@ export async function getGenerationById(id: string): Promise<(MockupGeneration &
   if (!isSupabaseConfigured()) return null;
 
   try {
-    const supabase = getSupabaseServiceClient();
+    const supabase = getSupabaseReadClient();
     const { data, error } = await supabase
       .from("generations")
       .select(
-        "id, preset, category, format, product_name, variant, model, prompt, source_image_url, preview_urls, provider, status, created_at, rating",
+        "id, preset, category, format, product_name, variant, model, prompt, source_image_url, preview_urls, provider, status, created_at, rating, kind",
       )
       .eq("id", id)
+      .is("deleted_at", null)
       .maybeSingle();
 
     if (error) {
@@ -162,6 +168,33 @@ export async function getGenerationById(id: string): Promise<(MockupGeneration &
   } catch (err) {
     console.error("[db] getGenerationById unexpected error:", err instanceof Error ? err.message : err);
     return null;
+  }
+}
+
+/**
+ * Soft-delete a generation (GDPR right to erasure).
+ * Sets deleted_at so the row is excluded from reads without destroying data.
+ * Non-fatal: returns false if Supabase is not configured or the update fails.
+ */
+export async function softDeleteGeneration(id: string): Promise<boolean> {
+  if (!isSupabaseConfigured()) return false;
+
+  try {
+    const supabase = getSupabaseServiceClient();
+    const { error } = await supabase
+      .from("generations")
+      .update({ deleted_at: new Date().toISOString() })
+      .eq("id", id);
+
+    if (error) {
+      console.error("[db] softDeleteGeneration failed:", error.message);
+      return false;
+    }
+
+    return true;
+  } catch (err) {
+    console.error("[db] softDeleteGeneration unexpected error:", err instanceof Error ? err.message : err);
+    return false;
   }
 }
 

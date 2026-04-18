@@ -4,6 +4,8 @@ import { enqueueGenerationJob, type GenerationJobInput } from "@/lib/job-queue";
 import { getRequestId, jsonWithRequestId, log } from "@/lib/logger";
 import { runGeneration } from "@/lib/image-provider";
 import { insertGeneration } from "@/lib/db/generations";
+import { detectRegion, resolveEffectiveRegion, recordGenerationLatency } from "@/lib/region";
+import { isBudgetExceeded, recordGenerationCost } from "@/lib/cost-control";
 import type { PresetId } from "@/lib/presets";
 
 export async function POST(request: Request) {
@@ -31,6 +33,17 @@ export async function POST(request: Request) {
     variantRaw === "b" ? "b" : variantRaw === "c" ? "c" : variantRaw === "d" ? "d" : "a";
   const provider = process.env.IMAGE_PROVIDER || "fal";
   const asyncRequested = body?.async === true;
+  const region = resolveEffectiveRegion(detectRegion(request));
+
+  // Kill switch: reject if daily/monthly budget is exceeded
+  const budget = isBudgetExceeded();
+  if (budget.exceeded) {
+    return jsonWithRequestId(
+      { ok: false, error: "BUDGET_EXCEEDED", message: budget.reason },
+      requestId,
+      { status: 503 },
+    );
+  }
 
   if (provider === "fal" && !process.env.FAL_KEY) {
     return jsonWithRequestId(
@@ -54,6 +67,7 @@ export async function POST(request: Request) {
     customModel: body?.customModel,
     customPrompt: body?.customPrompt,
     sessionId,
+    region,
   };
 
   log("info", "generation request accepted", {
@@ -81,7 +95,10 @@ export async function POST(request: Request) {
   }
 
   try {
+    const generationStart = Date.now();
     const result = await runGeneration(generationInput);
+    recordGenerationLatency(region, Date.now() - generationStart);
+    recordGenerationCost(variant);
     const generationId =
       (await insertGeneration({
         preset,

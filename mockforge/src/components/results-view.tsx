@@ -79,6 +79,9 @@ function ImageCard({
   downloadLabel,
   mockupLabel,
   previewReadyLabel,
+  preset,
+  productName,
+  category,
 }: {
   url: string;
   index: number;
@@ -86,7 +89,33 @@ function ImageCard({
   downloadLabel: string;
   mockupLabel: string;
   previewReadyLabel: string;
+  preset?: string;
+  productName?: string;
+  category?: string;
 }) {
+  const [videoUrl, setVideoUrl] = useState<string | null>(null);
+  const [videoLoading, setVideoLoading] = useState(false);
+  const [videoError, setVideoError] = useState<string | null>(null);
+
+  const handleGenerateVideo = async () => {
+    setVideoLoading(true);
+    setVideoError(null);
+    try {
+      const res = await fetch("/api/generate/video", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ imageUrl: url, preset, productName, category }),
+      });
+      const json = await res.json() as { ok: boolean; data?: { videoUrl: string }; message?: string };
+      if (!json.ok || !json.data?.videoUrl) throw new Error(json.message ?? "Video generation failed");
+      setVideoUrl(json.data.videoUrl);
+    } catch (err) {
+      setVideoError(err instanceof Error ? err.message : "Video generation failed");
+    } finally {
+      setVideoLoading(false);
+    }
+  };
+
   return (
     <div className="group overflow-hidden rounded-2xl border border-white/[0.08] bg-black/20 transition hover:border-white/[0.14]">
       <div className="relative aspect-square overflow-hidden">
@@ -128,6 +157,15 @@ function ImageCard({
         </div>
         <div className="flex items-center gap-2">
           {generationId ? <RatingButtons generationId={generationId} /> : null}
+          <button
+            type="button"
+            onClick={handleGenerateVideo}
+            disabled={videoLoading || Boolean(videoUrl)}
+            className="rounded-xl border border-white/[0.1] px-3 py-1.5 text-xs font-medium text-white/60 transition hover:border-white/25 hover:bg-white/[0.06] hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
+            title="Generate a 5-second video pan/zoom of this mockup"
+          >
+            {videoLoading ? "Generating..." : videoUrl ? "Video ready" : "+ Video"}
+          </button>
           <a
             href={url}
             target="_blank"
@@ -139,6 +177,32 @@ function ImageCard({
           </a>
         </div>
       </div>
+      {videoUrl ? (
+        <div className="border-t border-white/[0.06] px-4 pb-4 pt-3">
+          <div className="mb-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-white/25">
+            Generated Video
+          </div>
+          <video
+            src={videoUrl}
+            controls
+            loop
+            muted
+            className="w-full rounded-xl border border-white/[0.08]"
+          />
+          <a
+            href={videoUrl}
+            download
+            target="_blank"
+            rel="noreferrer"
+            className="mt-2 inline-block rounded-xl border border-white/[0.1] px-3 py-1.5 text-xs font-medium text-white/60 transition hover:border-white/25 hover:text-white"
+          >
+            {downloadLabel} MP4
+          </a>
+        </div>
+      ) : null}
+      {videoError ? (
+        <p className="px-4 pb-3 text-xs text-red-400">{videoError}</p>
+      ) : null}
     </div>
   );
 }
@@ -149,10 +213,16 @@ function CompareCard({
   result,
   sourceImageUrl,
   rv,
+  preset,
+  productName,
+  category,
 }: {
   result: VariantResult;
   sourceImageUrl?: string;
   rv: ReturnType<typeof useLanguage>["t"]["resultsView"];
+  preset?: string;
+  productName?: string;
+  category?: string;
 }) {
   return (
     <div className="overflow-hidden rounded-2xl border border-white/[0.08] bg-white/[0.025]">
@@ -203,6 +273,9 @@ function CompareCard({
                 downloadLabel={rv.download}
                 mockupLabel={rv.mockupLabel}
                 previewReadyLabel={rv.previewReady}
+                preset={preset}
+                productName={productName}
+                category={category}
               />
             ))}
           </div>
@@ -557,6 +630,9 @@ export function ResultsView({
               result={result}
               sourceImageUrl={sourceImageUrl}
               rv={rv}
+              preset={preset}
+              productName={productName}
+              category={category}
             />
           ))}
         </section>
@@ -648,6 +724,9 @@ export function ResultsView({
                         downloadLabel={rv.download}
                         mockupLabel={rv.mockupLabel}
                         previewReadyLabel={rv.previewReady}
+                        preset={preset}
+                        productName={productName}
+                        category={category}
                       />
                     ))}
                   </div>

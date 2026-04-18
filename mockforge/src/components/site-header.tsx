@@ -3,10 +3,21 @@
 import Link from "next/link";
 import { useState } from "react";
 import { useLanguage } from "@/lib/language-context";
+import type { Language } from "@/lib/i18n";
+
+const LANGUAGE_CYCLE: Language[] = ["en", "es", "fr", "pt", "de"];
+const LANGUAGE_LABELS: Record<Language, string> = {
+  en: "EN", es: "ES", fr: "FR", pt: "PT", de: "DE",
+};
 
 export function SiteHeader() {
   const { language, setLanguage, t } = useLanguage();
   const [mobileOpen, setMobileOpen] = useState(false);
+
+  const cycleLanguage = () => {
+    const idx = LANGUAGE_CYCLE.indexOf(language);
+    setLanguage(LANGUAGE_CYCLE[(idx + 1) % LANGUAGE_CYCLE.length]);
+  };
 
   return (
     <header className="sticky top-0 z-50 border-b border-white/[0.06] bg-black/90 backdrop-blur-2xl">
@@ -57,11 +68,12 @@ export function SiteHeader() {
         <div className="flex items-center gap-2">
           <button
             type="button"
-            onClick={() => setLanguage(language === "en" ? "es" : "en")}
+            onClick={cycleLanguage}
             className="hidden rounded-lg px-2.5 py-1.5 text-xs font-semibold text-white/25 transition hover:bg-white/[0.05] hover:text-white/60 md:block"
-            aria-label={language === "en" ? t.nav.switchToSpanish : t.nav.switchToEnglish}
+            aria-label="Switch language"
+            title={`Current: ${LANGUAGE_LABELS[language]} — click to cycle`}
           >
-            {language === "en" ? "ES" : "EN"}
+            {LANGUAGE_LABELS[language]}
           </button>
 
           <Link
@@ -117,16 +129,22 @@ export function SiteHeader() {
               {t.nav.history}
             </Link>
             <div className="mt-3 border-t border-white/[0.06] pt-3">
-              <button
-                type="button"
-                onClick={() => {
-                  setLanguage(language === "en" ? "es" : "en");
-                  setMobileOpen(false);
-                }}
-                className="rounded-xl px-4 py-3 text-sm text-white/35 transition hover:bg-white/[0.04] hover:text-white/60"
-              >
-                {language === "en" ? t.nav.switchToSpanish : t.nav.switchToEnglish}
-              </button>
+              <div className="flex flex-wrap gap-2 px-4 py-3">
+                {LANGUAGE_CYCLE.map((lang) => (
+                  <button
+                    key={lang}
+                    type="button"
+                    onClick={() => { setLanguage(lang); setMobileOpen(false); }}
+                    className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
+                      lang === language
+                        ? "bg-[#05DF72]/20 text-[#05DF72]"
+                        : "text-white/35 hover:bg-white/[0.04] hover:text-white/60"
+                    }`}
+                  >
+                    {LANGUAGE_LABELS[lang]}
+                  </button>
+                ))}
+              </div>
             </div>
           </nav>
         </div>

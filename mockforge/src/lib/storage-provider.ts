@@ -29,7 +29,7 @@ export const STORAGE_BUCKETS = {
 } as const;
 
 export type StorageBucket = (typeof STORAGE_BUCKETS)[keyof typeof STORAGE_BUCKETS];
-export type StorageBackend = "local" | "supabase";
+export type StorageBackend = "local" | "supabase" | "cdn";
 
 export interface StorageSaveResult {
   fileName: string;
@@ -50,8 +50,23 @@ export function isSupabaseStorageReady(): boolean {
   );
 }
 
+/**
+ * Returns true when Bunny CDN storage is selected and fully configured.
+ * Required env vars: BUNNY_STORAGE_API_KEY, BUNNY_STORAGE_ZONE, BUNNY_CDN_URL
+ */
+export function isCdnStorageReady(): boolean {
+  return (
+    process.env.STORAGE_PROVIDER === "cdn" &&
+    Boolean(process.env.BUNNY_STORAGE_API_KEY) &&
+    Boolean(process.env.BUNNY_STORAGE_ZONE) &&
+    Boolean(process.env.BUNNY_CDN_URL)
+  );
+}
+
 export function getStorageBackend(): StorageBackend {
-  return isSupabaseStorageReady() ? "supabase" : "local";
+  if (isCdnStorageReady()) return "cdn";
+  if (isSupabaseStorageReady()) return "supabase";
+  return "local";
 }
 
 // ---- Local backend (thin wrappers around file-storage.ts) ----
@@ -155,21 +170,90 @@ async function supabaseDownloadAndSave(url: string, prefix: string): Promise<Sto
   return supabaseSaveBuffer(Buffer.from(arrayBuffer), `${prefix}.${extension}`, STORAGE_BUCKETS.outputs);
 }
 
+// ---- Bunny CDN backend ----
+
+function bunnyStoragePath(prefix: string, extension: string): string {
+  const date = new Date().toISOString().slice(0, 10);
+  return `mockforge/${date}/${Date.now()}-${prefix.replace(/[^a-zA-Z0-9.-]/g, "-")}.${extension}`;
+}
+
+async function bunnySaveBuffer(
+  buffer: Buffer,
+  prefix: string,
+  extension: string,
+): Promise<StorageSaveResult> {
+  const apiKey = process.env.BUNNY_STORAGE_API_KEY!;
+  const zone = process.env.BUNNY_STORAGE_ZONE!;
+  const cdnBase = process.env.BUNNY_CDN_URL!.replace(/\/$/, "");
+
+  const storagePath = bunnyStoragePath(prefix, extension);
+  const uploadUrl = `https://storage.bunnycdn.com/${zone}/${storagePath}`;
+
+  const response = await fetch(uploadUrl, {
+    method: "PUT",
+    headers: {
+      AccessKey: apiKey,
+      "Content-Type": "application/octet-stream",
+    },
+    body: buffer as unknown as BodyInit,
+  });
+
+  if (!response.ok) {
+    throw new Error(`Bunny CDN upload failed: ${response.status} ${response.statusText}`);
+  }
+
+  const publicPath = `${cdnBase}/${storagePath}`;
+  return { fileName: storagePath, publicPath, backend: "cdn" };
+}
+
+async function bunnySaveUpload(file: File): Promise<StorageSaveResult> {
+  const buffer = Buffer.from(await file.arrayBuffer());
+  const ext = file.name.split(".").pop()?.toLowerCase() ?? "jpg";
+  return bunnySaveBuffer(buffer, `input-${file.name}`, ext);
+}
+
+async function bunnySaveBase64(dataUrlOrBase64: string, prefix: string): Promise<StorageSaveResult> {
+  const match = dataUrlOrBase64.match(/^data:(image\/(png|jpeg|jpg|webp));base64,(.+)$/i);
+  let buffer: Buffer;
+  let extension = "jpg";
+
+  if (match) {
+    const mimeType = match[1].toLowerCase();
+    extension = mimeType.includes("png") ? "png" : mimeType.includes("webp") ? "webp" : "jpg";
+    buffer = Buffer.from(match[3], "base64");
+  } else {
+    buffer = Buffer.from(dataUrlOrBase64, "base64");
+  }
+
+  return bunnySaveBuffer(buffer, prefix, extension);
+}
+
+async function bunnyDownloadAndSave(url: string, prefix: string): Promise<StorageSaveResult> {
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(`Failed to fetch image for CDN upload: ${response.status}`);
+  }
+  const contentType = response.headers.get("content-type") ?? "image/jpeg";
+  const extension = contentType.includes("png") ? "png" : contentType.includes("webp") ? "webp" : "jpg";
+  const buffer = Buffer.from(await response.arrayBuffer());
+  return bunnySaveBuffer(buffer, prefix, extension);
+}
+
 // ---- Routing with local fallback ----
 
 async function withLocalFallback<T extends StorageSaveResult>(
-  supabaseFn: () => Promise<T>,
+  remoteFn: () => Promise<T>,
   localFn: () => Promise<T>,
   label: string,
 ): Promise<T> {
-  if (!isSupabaseStorageReady()) return localFn();
+  if (!isCdnStorageReady() && !isSupabaseStorageReady()) return localFn();
 
   try {
-    return await supabaseFn();
+    return await remoteFn();
   } catch (err) {
     incrementMetric("storageFallbackToLocal");
     console.warn(
-      `[storage] Supabase ${label} failed, falling back to local:`,
+      `[storage] Remote ${label} failed, falling back to local:`,
       err instanceof Error ? err.message : err,
     );
     return localFn();
@@ -180,20 +264,19 @@ async function withLocalFallback<T extends StorageSaveResult>(
 
 /** Save a user-uploaded source image. */
 export async function saveInputUpload(file: File): Promise<StorageSaveResult> {
-  return withLocalFallback(
-    () => supabaseSaveUpload(file),
-    () => localSaveUpload(file),
-    "saveInputUpload",
-  );
+  const remoteFn = isCdnStorageReady()
+    ? () => bunnySaveUpload(file)
+    : () => supabaseSaveUpload(file);
+  return withLocalFallback(remoteFn, () => localSaveUpload(file), "saveInputUpload");
 }
 
 /** Save a raw buffer as a generated output image. */
 export async function saveOutputBuffer(buffer: Buffer, fileName: string): Promise<StorageSaveResult> {
-  return withLocalFallback(
-    () => supabaseSaveBuffer(buffer, fileName, STORAGE_BUCKETS.outputs),
-    () => localSaveBuffer(buffer, fileName),
-    "saveOutputBuffer",
-  );
+  const ext = fileName.split(".").pop()?.toLowerCase() ?? "jpg";
+  const remoteFn = isCdnStorageReady()
+    ? () => bunnySaveBuffer(buffer, fileName, ext)
+    : () => supabaseSaveBuffer(buffer, fileName, STORAGE_BUCKETS.outputs);
+  return withLocalFallback(remoteFn, () => localSaveBuffer(buffer, fileName), "saveOutputBuffer");
 }
 
 /** Save a base64 or data-URL image as a generated output. */
@@ -201,11 +284,10 @@ export async function saveOutputBase64(
   dataUrlOrBase64: string,
   prefix = "generated",
 ): Promise<StorageSaveResult> {
-  return withLocalFallback(
-    () => supabaseSaveBase64(dataUrlOrBase64, prefix),
-    () => localSaveBase64(dataUrlOrBase64, prefix),
-    "saveOutputBase64",
-  );
+  const remoteFn = isCdnStorageReady()
+    ? () => bunnySaveBase64(dataUrlOrBase64, prefix)
+    : () => supabaseSaveBase64(dataUrlOrBase64, prefix);
+  return withLocalFallback(remoteFn, () => localSaveBase64(dataUrlOrBase64, prefix), "saveOutputBase64");
 }
 
 /** Download a remote URL and save it as a generated output. */
@@ -213,9 +295,8 @@ export async function downloadAndSaveOutput(
   url: string,
   prefix = "generated",
 ): Promise<StorageSaveResult> {
-  return withLocalFallback(
-    () => supabaseDownloadAndSave(url, prefix),
-    () => localDownloadAndSave(url, prefix),
-    "downloadAndSaveOutput",
-  );
+  const remoteFn = isCdnStorageReady()
+    ? () => bunnyDownloadAndSave(url, prefix)
+    : () => supabaseDownloadAndSave(url, prefix);
+  return withLocalFallback(remoteFn, () => localDownloadAndSave(url, prefix), "downloadAndSaveOutput");
 }
