@@ -16,7 +16,7 @@ async function main() {
 
   await new Promise((resolve) => setTimeout(resolve, 20));
 
-  const stored = getGenerationJob(job.id);
+  const stored = await getGenerationJob(job.id);
   assert.ok(stored);
   assert.ok(stored?.status === "failed" || stored?.status === "processing" || stored?.status === "completed");
 }

@@ -104,9 +104,9 @@ Plan priorizado para ejecutar a lo largo de varias sesiones. Cada item incluye a
 - Hecho: logging estructurado con request IDs, Sentry cliente+server, health check real, métricas de fallback de storage
 - **Pendiente:** distributed tracing (OpenTelemetry / Sentry Performance) para correlacionar upload → generate → provider → DB en una sola traza.
 
-### [~] 16. Job queue — PARCIAL (stub en memoria)
+### [x] 16. Job queue — Supabase persistente
 - Hecho: contrato `/api/generate` devuelve `jobId` y hay endpoint `/api/jobs/[id]` para polling
-- **Pendiente:** `src/lib/job-queue.ts` usa `Map` en memoria — los jobs **se pierden al reiniciar el servidor** y no escala a múltiples instancias. Migrar a BullMQ + Redis, Inngest o AWS SQS.
+- Hecho: `src/lib/job-queue.ts` persiste estado en Supabase (`generation_jobs` table). Memory Map como caché de jobs activos; DB como fallback para otras instancias y reinicios. Jobs `processing` > 10 min se recuperan automáticamente.
 
 ### [x] 17. Tests
 - Hoy: 3 unit tests (file-storage, model-config, storage-provider) + 1 Playwright smoke
@@ -237,7 +237,7 @@ Plan priorizado para ejecutar a lo largo de varias sesiones. Cada item incluye a
 Items marcados `[x]` durante las fases previas pero que en código siguen siendo stubs o quedaron parciales. Leyenda: `[ ]` pendiente · `[~]` parcial · `[x]` completo verificado.
 
 ### Críticos
-- [~] **#16 Job queue persistente** — reemplazar `Map` en memoria de `src/lib/job-queue.ts` por BullMQ+Redis o Inngest. Bloquea #29 y producción multi-instancia.
+- [x] **#16 Job queue persistente** — Supabase-backed (`generation_jobs` table) con memory cache. Jobs persisten entre reinicios. Multi-instancia: cada instancia procesa sus propios jobs, DB es fuente de verdad para polling.
 
 ### Alta prioridad
 - [~] **#9 Auth real** — hoy solo cookie `mf_session`. Evaluar NextAuth (magic link) o Clerk.

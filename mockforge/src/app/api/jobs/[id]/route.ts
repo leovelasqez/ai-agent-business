@@ -6,7 +6,7 @@ export async function GET(
   context: { params: Promise<{ id: string }> },
 ) {
   const { id } = await context.params;
-  const job = getGenerationJob(id);
+  const job = await getGenerationJob(id);
 
   if (!job) {
     return NextResponse.json(

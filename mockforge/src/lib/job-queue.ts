@@ -1,55 +1,31 @@
 import { insertGeneration } from "@/lib/db/generations";
-import { runGeneration, type GenerationVariant } from "@/lib/image-provider";
+import { dbCreateJob, dbUpdateJob, dbGetJob } from "@/lib/db/jobs";
+import { runGeneration } from "@/lib/image-provider";
 import { incrementMetric } from "@/lib/metrics";
-import { recordGenerationLatency, type KnownRegion } from "@/lib/region";
-import type { PresetId } from "@/lib/presets";
+import { recordGenerationLatency } from "@/lib/region";
+import type { GenerationJobInput, GenerationJobState } from "@/lib/job-queue-types";
 
-export interface GenerationJobInput {
-  preset: PresetId;
-  category?: string;
-  format?: string;
-  productName?: string;
-  sourceImageUrl?: string;
-  variant: GenerationVariant;
-  customModel?: string;
-  customPrompt?: string;
-  bgColor?: string;
-  bgTexture?: string;
-  sessionId?: string;
-  region?: KnownRegion;
-}
+export type { GenerationJobInput, GenerationJobState };
 
-export interface GenerationJobState {
-  id: string;
-  status: "queued" | "processing" | "completed" | "failed";
-  createdAt: string;
-  updatedAt: string;
-  error?: string;
-  result?: {
-    generationId: string;
-    preset: PresetId;
-    category?: string;
-    format?: string;
-    productName?: string;
-    sourceImageUrl: string | null;
-    status: "completed";
-    provider: string;
-    model: string;
-    variant: GenerationVariant;
-    variantLabel: string;
-    prompt: string;
-    previewUrls: string[];
-  };
-}
-
+// In-memory cache: authoritative for jobs running in this process.
+// Falls back to DB for jobs from other instances or previous restarts.
 const jobs = new Map<string, GenerationJobState>();
 
 function setJob(job: GenerationJobState) {
   jobs.set(job.id, job);
+  // Persist to DB asynchronously — don't await so we never block the caller.
+  dbUpdateJob(job.id, {
+    status: job.status,
+    resultJson: job.result,
+    error: job.error,
+  }).catch(() => {/* non-fatal */});
 }
 
-export function getGenerationJob(jobId: string) {
-  return jobs.get(jobId) ?? null;
+export async function getGenerationJob(jobId: string): Promise<GenerationJobState | null> {
+  const cached = jobs.get(jobId);
+  if (cached) return cached;
+  // Not in memory (different instance or server restart) — try DB.
+  return dbGetJob(jobId);
 }
 
 export function enqueueGenerationJob(input: GenerationJobInput) {
@@ -62,14 +38,18 @@ export function enqueueGenerationJob(input: GenerationJobInput) {
     updatedAt: now,
   };
 
-  setJob(initial);
+  jobs.set(id, initial);
   incrementMetric("generationQueued");
 
+  // Persist job creation to DB (fire-and-forget).
+  dbCreateJob(id, input, input.region).catch(() => {/* non-fatal */});
+
   queueMicrotask(async () => {
-    const current = getGenerationJob(id);
+    const current = jobs.get(id);
     if (!current) return;
 
-    setJob({ ...current, status: "processing", updatedAt: new Date().toISOString() });
+    const processing: GenerationJobState = { ...current, status: "processing", updatedAt: new Date().toISOString() };
+    setJob(processing);
     const startMs = Date.now();
 
     try {
