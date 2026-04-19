@@ -2,14 +2,20 @@
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+import { useEffect } from "react";
 import { Suspense } from "react";
 import { SiteHeader } from "@/components/site-header";
 import { useLanguage } from "@/lib/language-context";
+import { track } from "@/lib/analytics";
 
 function SuccessContent() {
   const { t } = useLanguage();
   const searchParams = useSearchParams();
   const sessionId = searchParams.get("session_id");
+
+  useEffect(() => {
+    track("checkout_complete", { sessionId: sessionId ?? undefined });
+  }, [sessionId]);
 
   return (
     <main className="flex min-h-[calc(100vh-4rem)] flex-col items-center justify-center px-6 text-center">

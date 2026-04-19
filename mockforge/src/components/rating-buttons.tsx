@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useLanguage } from "@/lib/language-context";
+import { track } from "@/lib/analytics";
 
 function ThumbUp({ className }: { className?: string }) {
   return (
@@ -42,6 +43,7 @@ export function RatingButtons({ generationId, initialRating }: RatingButtonsProp
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ generationId, rating: value }),
       });
+      track("mockup_rated", { generationId, rating: value });
     } catch {
       setRating(prev);
     } finally {

@@ -24,6 +24,8 @@ function ResultsPageInner() {
 
   const customModel = searchParams.get("customModel") ?? undefined;
   const customPrompt = searchParams.get("customPrompt") ?? undefined;
+  const bgColor = searchParams.get("bgColor") ?? undefined;
+  const bgTexture = searchParams.get("bgTexture") ?? undefined;
 
   const compareVariants = compareVariantsParam
     ? (compareVariantsParam
@@ -74,6 +76,8 @@ function ResultsPageInner() {
           compareVariants={isCompare ? compareVariants : null}
           customModel={customModel}
           customPrompt={customPrompt}
+          bgColor={bgColor}
+          bgTexture={bgTexture}
         />
       </main>
     </div>

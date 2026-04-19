@@ -4,6 +4,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { SiteHeader } from "@/components/site-header";
+import { OnboardingTour } from "@/components/onboarding-tour";
 import { useLanguage } from "@/lib/language-context";
 import type { Language } from "@/lib/i18n";
 
@@ -195,6 +196,7 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-black text-white">
+      <OnboardingTour />
       <SiteHeader />
 
       <section className="relative overflow-hidden border-b border-white/[0.06] px-5 pb-28 pt-20 md:pb-36 md:pt-28">

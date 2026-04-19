@@ -11,6 +11,8 @@ export interface RunGenerationInput {
   variant?: GenerationVariant;
   customModel?: string;
   customPrompt?: string;
+  bgColor?: string;
+  bgTexture?: string;
 }
 
 export interface RunGenerationResult {

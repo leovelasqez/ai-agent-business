@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { useLanguage } from "@/lib/language-context";
+import { CreditsBadge } from "@/components/credits-badge";
 import type { Language } from "@/lib/i18n";
 
 const LANGUAGE_CYCLE: Language[] = ["en", "es", "fr", "pt", "de"];
@@ -62,10 +63,17 @@ export function SiteHeader() {
           >
             {t.nav.history}
           </Link>
+          <Link
+            href="/gallery"
+            className="rounded-lg px-3.5 py-2 text-sm text-white/45 transition hover:bg-white/[0.05] hover:text-white"
+          >
+            Gallery
+          </Link>
         </nav>
 
         {/* Right side */}
         <div className="flex items-center gap-2">
+          <CreditsBadge />
           <button
             type="button"
             onClick={cycleLanguage}

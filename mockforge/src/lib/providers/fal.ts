@@ -200,6 +200,8 @@ export async function runFalGeneration(input: RunGenerationInput): Promise<RunGe
     productName: input.productName,
     format: input.format,
     customPrompt: input.customPrompt,
+    bgColor: input.bgColor,
+    bgTexture: input.bgTexture,
   });
 
   const model = resolveVariantModel(variant, input.customModel);

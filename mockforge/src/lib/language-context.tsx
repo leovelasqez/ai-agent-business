@@ -28,17 +28,19 @@ function detectBrowserLanguage(): Language {
   return "en";
 }
 
-function getInitialLanguage(): Language {
-  if (typeof window === "undefined") return "en";
-
+function readClientLanguage(): Language {
   const stored = window.localStorage.getItem(LANGUAGE_STORAGE_KEY) as Language | null;
   if (stored && SUPPORTED_LANGUAGES.includes(stored)) return stored;
-
   return detectBrowserLanguage();
 }
 
 export function LanguageProvider({ children }: { children: React.ReactNode }) {
-  const [language, setLanguageState] = useState<Language>(getInitialLanguage);
+  const [language, setLanguageState] = useState<Language>("en");
+
+  useEffect(() => {
+    const detected = readClientLanguage();
+    setLanguageState((current) => (current === detected ? current : detected));
+  }, []);
 
   useEffect(() => {
     document.documentElement.lang = language;

@@ -7,6 +7,7 @@ import { FilePicker } from "@/components/file-picker";
 import { PRESETS, type PresetId } from "@/lib/presets";
 import { CURATED_MODELS } from "@/lib/model-config";
 import { useLanguage } from "@/lib/language-context";
+import { track } from "@/lib/analytics";
 import type { GenerationVariant } from "@/lib/image-provider";
 
 interface MockupUploadFormProps {
@@ -47,6 +48,9 @@ export function MockupUploadForm({
   const [variant, setVariant] = useState<GenerationVariant>(initialVariant);
   const [customModel, setCustomModel] = useState<string>(CURATED_MODELS[0].id);
   const [customPrompt, setCustomPrompt] = useState<string>("");
+  const [bgColor, setBgColor] = useState<string>("");
+  const [bgTexture, setBgTexture] = useState<string>("");
+  const [showBgControls, setShowBgControls] = useState(false);
   const [compareMode, setCompareMode] = useState(false);
   const [compareVariants, setCompareVariants] = useState<Set<GenerationVariant>>(
     new Set(["b", "c", "d"]),
@@ -93,6 +97,7 @@ export function MockupUploadForm({
       }
 
       setSelectedSourceImageUrl(uploadJson.data.sourceImageUrl);
+      track("upload_complete", { fileName: file.name, fileSize: file.size, fileType: file.type });
       return uploadJson.data.sourceImageUrl as string;
     } catch (uploadError) {
       setSelectedFileName("");
@@ -165,6 +170,9 @@ export function MockupUploadForm({
         params.set("customModel", customModel);
         if (customPrompt.trim()) params.set("customPrompt", customPrompt.trim());
       }
+
+      if (bgColor.trim()) params.set("bgColor", bgColor.trim());
+      if (bgTexture.trim()) params.set("bgTexture", bgTexture.trim());
 
       router.push(`/results?${params.toString()}`);
     } catch (submitError) {
@@ -420,6 +428,102 @@ export function MockupUploadForm({
             ))}
           </div>
         </div>
+
+        {/* Background controls */}
+        {preset !== "custom" && (
+          <div className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-6">
+            <button
+              type="button"
+              onClick={() => setShowBgControls((v) => !v)}
+              className="flex w-full items-center justify-between text-sm font-semibold text-white/60 hover:text-white/80 transition"
+            >
+              <span>Background controls</span>
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 14 14"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.6"
+                aria-hidden="true"
+                className={`transition-transform ${showBgControls ? "rotate-180" : ""}`}
+              >
+                <path d="M2 5l5 5 5-5" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </button>
+
+            {showBgControls && (
+              <div className="mt-5 space-y-4">
+                <div>
+                  <label className="mb-2 block text-xs font-medium text-white/40">
+                    Background color hint
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      value={bgColor}
+                      onChange={(e) => setBgColor(e.target.value)}
+                      className={`${inputClass} flex-1`}
+                      placeholder="e.g. sage green, warm beige, navy blue"
+                    />
+                    <div className="flex gap-1.5">
+                      {["white", "cream", "sage", "navy", "black"].map((c) => (
+                        <button
+                          key={c}
+                          type="button"
+                          onClick={() => setBgColor(c)}
+                          title={c}
+                          className={`h-9 w-9 rounded-lg border text-[10px] font-semibold capitalize transition ${
+                            bgColor === c
+                              ? "border-[#05DF72]/50 ring-1 ring-[#05DF72]/30"
+                              : "border-white/[0.08] hover:border-white/20"
+                          }`}
+                          style={{
+                            background:
+                              c === "white" ? "#f5f5f5"
+                              : c === "cream" ? "#fdf6e3"
+                              : c === "sage" ? "#8fa888"
+                              : c === "navy" ? "#1a2744"
+                              : "#050505",
+                          }}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="mb-2 block text-xs font-medium text-white/40">
+                    Background texture
+                  </label>
+                  <select
+                    value={bgTexture}
+                    onChange={(e) => setBgTexture(e.target.value)}
+                    className={selectClass}
+                    style={{ colorScheme: "dark" }}
+                  >
+                    <option value="">None (solid / plain)</option>
+                    <option value="marble">Marble</option>
+                    <option value="wood">Natural wood</option>
+                    <option value="linen">Linen fabric</option>
+                    <option value="concrete">Concrete</option>
+                    <option value="bokeh">Bokeh blur</option>
+                    <option value="gradient">Smooth gradient</option>
+                  </select>
+                </div>
+
+                {(bgColor || bgTexture) && (
+                  <button
+                    type="button"
+                    onClick={() => { setBgColor(""); setBgTexture(""); }}
+                    className="text-xs text-white/25 hover:text-white/50 transition"
+                  >
+                    Clear controls
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Warnings / errors */}
         {!effectiveSourceImageUrl ? (

@@ -34,13 +34,25 @@ export const replicatePresetConfig: Record<PresetId, ReplicateModelConfig> = {
       safety_tolerance: 2,
     },
   },
+  flat_lay: {
+    model: DEFAULT_MODEL,
+    defaults: { output_format: "jpg", aspect_ratio: "1:1", safety_tolerance: 2 },
+  },
+  minimal_white: {
+    model: DEFAULT_MODEL,
+    defaults: { output_format: "jpg", aspect_ratio: "1:1", safety_tolerance: 2 },
+  },
+  outdoor_natural: {
+    model: DEFAULT_MODEL,
+    defaults: { output_format: "jpg", aspect_ratio: "4:5", safety_tolerance: 2 },
+  },
+  holiday_seasonal: {
+    model: DEFAULT_MODEL,
+    defaults: { output_format: "jpg", aspect_ratio: "4:5", safety_tolerance: 2 },
+  },
   custom: {
     model: DEFAULT_MODEL,
-    defaults: {
-      output_format: "jpg",
-      aspect_ratio: "1:1",
-      safety_tolerance: 2,
-    },
+    defaults: { output_format: "jpg", aspect_ratio: "1:1", safety_tolerance: 2 },
   },
 };
 

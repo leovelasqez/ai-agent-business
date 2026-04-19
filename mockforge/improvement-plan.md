@@ -133,29 +133,29 @@ Plan priorizado para ejecutar a lo largo de varias sesiones. Cada item incluye a
 
 ## 🔵 Fase 5 — Producto y retención
 
-### [ ] 19. Onboarding y ejemplos
+### [x] 19. Onboarding y ejemplos
 - Landing con ejemplos "antes / después" reales generados con MockForge (no placeholders)
 - Tour guiado en primer uso (upload → preset → resultado)
 - Galería pública opt-in de generaciones destacadas
 
-### [ ] 20. Presets extendidos
+### [x] 20. Presets extendidos
 **Archivo:** `src/lib/presets.ts`, `src/lib/prompt-builder.ts`
 - Presets adicionales: `holiday_seasonal`, `flat_lay`, `minimal_white`, `outdoor_natural`
 - Parametrización de fondo (color, textura) sin requerir prompt custom
 - Controles avanzados opcionales: ángulo de cámara, hora del día, iluminación
 
-### [ ] 21. Edición post-generación
+### [x] 21. Edición post-generación
 - Inpainting sobre resultado (marcar zona y regenerar)
 - Variaciones a partir de un resultado existente ("más como este")
 - Upscale con `fal-ai/clarity-upscaler` o equivalente
 
-### [ ] 22. Planes y créditos
+### [x] 22. Planes y créditos
 **Archivo:** `src/app/api/checkout/route.ts`, nuevo `src/lib/credits.ts`
 - Sistema de créditos (1 generación = N créditos según variante)
 - Tiers: free trial (3 créditos), pack pagado, suscripción mensual
 - Dashboard de saldo y consumo por usuario
 
-### [ ] 23. Analytics de producto
+### [x] 23. Analytics de producto
 - Eventos clave: upload, generate, rate, download, checkout_start, checkout_complete
 - Funnel de conversión upload → pago
 - PostHog o Plausible (evitar GA4 por complejidad y privacidad)

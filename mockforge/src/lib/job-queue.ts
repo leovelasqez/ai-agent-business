@@ -13,6 +13,8 @@ export interface GenerationJobInput {
   variant: GenerationVariant;
   customModel?: string;
   customPrompt?: string;
+  bgColor?: string;
+  bgTexture?: string;
   sessionId?: string;
   region?: KnownRegion;
 }

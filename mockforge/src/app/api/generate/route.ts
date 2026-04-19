@@ -6,6 +6,7 @@ import { runGeneration } from "@/lib/image-provider";
 import { insertGeneration } from "@/lib/db/generations";
 import { detectRegion, resolveEffectiveRegion, recordGenerationLatency } from "@/lib/region";
 import { isBudgetExceeded, recordGenerationCost } from "@/lib/cost-control";
+import { maybeGrantFreeTrial, deductCredits, CREDIT_COST } from "@/lib/credits";
 import type { PresetId } from "@/lib/presets";
 
 export async function POST(request: Request) {
@@ -34,6 +35,8 @@ export async function POST(request: Request) {
   const provider = process.env.IMAGE_PROVIDER || "fal";
   const asyncRequested = body?.async === true;
   const region = resolveEffectiveRegion(detectRegion(request));
+  const bgColor: string | undefined = body?.bgColor;
+  const bgTexture: string | undefined = body?.bgTexture;
 
   // Kill switch: reject if daily/monthly budget is exceeded
   const budget = isBudgetExceeded();
@@ -42,6 +45,23 @@ export async function POST(request: Request) {
       { ok: false, error: "BUDGET_EXCEEDED", message: budget.reason },
       requestId,
       { status: 503 },
+    );
+  }
+
+  // Credits: auto-grant free trial then check balance
+  await maybeGrantFreeTrial(sessionId);
+  const cost = CREDIT_COST[variant] ?? 1;
+  const { ok: hasCredits, balance: currentBalance } = await deductCredits(sessionId, variant);
+  if (!hasCredits) {
+    return jsonWithRequestId(
+      {
+        ok: false,
+        error: "INSUFFICIENT_CREDITS",
+        message: "You have no credits left. Purchase a pack to continue generating.",
+        data: { balance: currentBalance, cost },
+      },
+      requestId,
+      { status: 402 },
     );
   }
 
@@ -66,6 +86,8 @@ export async function POST(request: Request) {
     variant,
     customModel: body?.customModel,
     customPrompt: body?.customPrompt,
+    bgColor,
+    bgTexture,
     sessionId,
     region,
   };

@@ -18,9 +18,10 @@ export async function POST(request: Request) {
   }
 
   const body = await request.json().catch(() => ({}));
-  const { generationId, package: pkg } = body as {
+  const { generationId, package: pkg, sessionId } = body as {
     generationId?: string;
     package?: string;
+    sessionId?: string;
   };
 
   const packageKey: PackageKey = pkg === "bundle" ? "bundle" : "single";
@@ -44,9 +45,11 @@ export async function POST(request: Request) {
       cancel_url: generationId
         ? `${appUrl}/results?generationId=${generationId}`
         : `${appUrl}/results`,
+      client_reference_id: sessionId ?? undefined,
       metadata: {
         generationId: generationId ?? "",
         package: packageKey,
+        session_id: sessionId ?? "",
       },
     });
 

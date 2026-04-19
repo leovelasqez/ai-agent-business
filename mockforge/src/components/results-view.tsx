@@ -5,8 +5,10 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ResultsSummary } from "@/components/results-summary";
 import { RatingButtons } from "@/components/rating-buttons";
+import { PostGenerationActions } from "@/components/post-generation-actions";
 import { useLanguage } from "@/lib/language-context";
 import { VARIANT_LABELS } from "@/lib/model-config";
+import { track } from "@/lib/analytics";
 import type { GenerationStatus } from "@/lib/types";
 import type { GenerationVariant } from "@/lib/image-provider";
 
@@ -20,6 +22,8 @@ interface ResultsViewProps {
   compareVariants?: GenerationVariant[] | null;
   customModel?: string;
   customPrompt?: string;
+  bgColor?: string;
+  bgTexture?: string;
 }
 
 interface GenerateResponse {
@@ -49,6 +53,8 @@ async function callGenerate(
     variant: string;
     customModel?: string;
     customPrompt?: string;
+    bgColor?: string;
+    bgTexture?: string;
   },
   signal?: AbortSignal,
 ): Promise<GenerateResponse> {
@@ -82,6 +88,12 @@ function ImageCard({
   preset,
   productName,
   category,
+  sourceImageUrl,
+  format,
+  variant,
+  customPrompt,
+  bgColor,
+  bgTexture,
 }: {
   url: string;
   index: number;
@@ -92,6 +104,12 @@ function ImageCard({
   preset?: string;
   productName?: string;
   category?: string;
+  sourceImageUrl?: string;
+  format?: string;
+  variant?: string;
+  customPrompt?: string;
+  bgColor?: string;
+  bgTexture?: string;
 }) {
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [videoLoading, setVideoLoading] = useState(false);
@@ -171,6 +189,7 @@ function ImageCard({
             target="_blank"
             rel="noreferrer"
             download
+            onClick={() => track("mockup_downloaded", { generationId, url })}
             className="rounded-xl border border-white/[0.1] px-3 py-1.5 text-xs font-medium text-white/60 transition hover:border-white/25 hover:bg-white/[0.06] hover:text-white"
           >
             {downloadLabel}
@@ -203,6 +222,18 @@ function ImageCard({
       {videoError ? (
         <p className="px-4 pb-3 text-xs text-red-400">{videoError}</p>
       ) : null}
+      <PostGenerationActions
+        imageUrl={url}
+        sourceImageUrl={sourceImageUrl}
+        preset={preset ?? "clean_studio"}
+        productName={productName}
+        category={category}
+        format={format}
+        variant={variant}
+        customPrompt={customPrompt}
+        bgColor={bgColor}
+        bgTexture={bgTexture}
+      />
     </div>
   );
 }
@@ -216,6 +247,7 @@ function CompareCard({
   preset,
   productName,
   category,
+  format,
 }: {
   result: VariantResult;
   sourceImageUrl?: string;
@@ -223,6 +255,7 @@ function CompareCard({
   preset?: string;
   productName?: string;
   category?: string;
+  format?: string;
 }) {
   return (
     <div className="overflow-hidden rounded-2xl border border-white/[0.08] bg-white/[0.025]">
@@ -276,6 +309,9 @@ function CompareCard({
                 preset={preset}
                 productName={productName}
                 category={category}
+                sourceImageUrl={sourceImageUrl}
+                format={format}
+                variant={result.variant}
               />
             ))}
           </div>
@@ -314,6 +350,8 @@ export function ResultsView({
   compareVariants,
   customModel,
   customPrompt,
+  bgColor,
+  bgTexture,
 }: ResultsViewProps) {
   const { t } = useLanguage();
   const rv = t.resultsView;
@@ -356,6 +394,7 @@ export function ResultsView({
 
   async function startCheckout(pkg: "single" | "bundle") {
     setCheckoutLoading(pkg);
+    track("checkout_started", { package: pkg, generationId, preset, variant });
     try {
       const res = await fetch("/api/checkout", {
         method: "POST",
@@ -383,6 +422,7 @@ export function ResultsView({
     async function generate() {
       setStatus("processing");
       setError(null);
+      track("generation_started", { preset, variant, format, category });
 
       try {
         const json = await callGenerate(
@@ -395,6 +435,8 @@ export function ResultsView({
             variant,
             customModel,
             customPrompt,
+            bgColor,
+            bgTexture,
           },
           controller.signal,
         );
@@ -407,12 +449,14 @@ export function ResultsView({
         setGenerationId(json.data.generationId ?? null);
         setVariantLabel(json.data.variantLabel || defaultVariantLabel);
         setStatus("completed");
+        track("generation_complete", { preset, variant, format, category, generationId: json.data.generationId });
       } catch (err) {
         if (controller.signal.aborted) return;
         const raw =
           err instanceof Error ? err.message : "Unknown generation error";
         setError(friendlyError(raw));
         setStatus("failed");
+        track("generation_failed", { preset, variant, format, category, error: raw });
       }
     }
 
@@ -633,6 +677,7 @@ export function ResultsView({
               preset={preset}
               productName={productName}
               category={category}
+              format={format}
             />
           ))}
         </section>
@@ -727,6 +772,12 @@ export function ResultsView({
                         preset={preset}
                         productName={productName}
                         category={category}
+                        sourceImageUrl={sourceImageUrl}
+                        format={format}
+                        variant={variant}
+                        customPrompt={customPrompt}
+                        bgColor={bgColor}
+                        bgTexture={bgTexture}
                       />
                     ))}
                   </div>

@@ -1,5 +1,6 @@
 import Stripe from "stripe";
 import { NextResponse } from "next/server";
+import { grantCredits } from "@/lib/credits";
 
 // Stripe requires the raw request body for signature verification.
 // In Next.js App Router, request.text() provides it before any parsing.
@@ -28,6 +29,8 @@ export async function POST(request: Request) {
   if (event.type === "checkout.session.completed") {
     const session = event.data.object as Stripe.Checkout.Session;
     const { generationId, package: pkg } = session.metadata ?? {};
+    const clientSessionId = session.client_reference_id ?? session.metadata?.session_id ?? "";
+
     console.log("[stripe/webhook] checkout.session.completed", {
       sessionId: session.id,
       generationId,
@@ -35,7 +38,11 @@ export async function POST(request: Request) {
       amountTotal: session.amount_total,
       currency: session.currency,
     });
-    // TODO: Mark generation as paid in DB once payment_status column is added.
+
+    if (clientSessionId) {
+      const tier = pkg === "bundle" ? "purchase_bundle" : "purchase_single";
+      await grantCredits(clientSessionId, tier, session.id);
+    }
   }
 
   return NextResponse.json({ received: true });
