@@ -7,12 +7,17 @@ import { insertGeneration } from "@/lib/db/generations";
 import { detectRegion, resolveEffectiveRegion, recordGenerationLatency } from "@/lib/region";
 import { isBudgetExceeded, recordGenerationCost } from "@/lib/cost-control";
 import { maybeGrantFreeTrial, deductCredits, CREDIT_COST } from "@/lib/credits";
+import { getServerUser } from "@/lib/supabase-server";
 import type { PresetId } from "@/lib/presets";
 
 export async function POST(request: Request) {
   const requestId = getRequestId(request);
+  // Prefer authenticated user ID (Supabase) over anonymous cookie session.
+  const authedUser = await getServerUser();
   const sessionId =
-    request.headers.get("cookie")?.match(/mf_session=([^;]+)/)?.[1] ?? getClientIp(request);
+    authedUser?.id ??
+    request.headers.get("cookie")?.match(/mf_session=([^;]+)/)?.[1] ??
+    getClientIp(request);
   const rl = checkRateLimit(`generate:${sessionId}`, 5, 60_000);
   if (!rl.allowed) {
     return jsonWithRequestId(

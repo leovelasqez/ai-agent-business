@@ -59,9 +59,9 @@ Plan priorizado para ejecutar a lo largo de varias sesiones. Cada item incluye a
 - Faltan páginas/listado completos en UI
 - Considerar paginación (hoy hardcoded `limit=30` en `getRecentGenerations`)
 
-### [~] 9. Sesiones anónimas (auth mínima) — PARCIAL
+### [x] 9. Auth real — Supabase magic link
 - Hecho: cookie `mf_session` asocia generaciones a sesión anónima
-- **Pendiente:** auth real (NextAuth magic link o Clerk) para monetización sostenible. Hoy ratings/resultados siguen siendo manipulables fuera del dueño de la cookie.
+- Hecho: auth real con Supabase Auth (magic link por email). `POST /api/auth/signin` envía enlace; `GET /api/auth/callback` canjea el code; `POST /api/auth/signout` cierra sesión. Middleware refresca el token en cada request. `generate/route.ts` usa el user ID verificado de Supabase si disponible, cookie anónima como fallback.
 
 ---
 
@@ -240,7 +240,7 @@ Items marcados `[x]` durante las fases previas pero que en código siguen siendo
 - [x] **#16 Job queue persistente** — Supabase-backed (`generation_jobs` table) con memory cache. Jobs persisten entre reinicios. Multi-instancia: cada instancia procesa sus propios jobs, DB es fuente de verdad para polling.
 
 ### Alta prioridad
-- [~] **#9 Auth real** — hoy solo cookie `mf_session`. Evaluar NextAuth (magic link) o Clerk.
+- [x] **#9 Auth real** — Supabase Auth magic link implementado. Middleware refresca sesión; `generate` usa user ID verificado. Fallback a cookie anónima si Supabase no está configurado.
 - [~] **#15 Distributed tracing** — añadir OpenTelemetry o Sentry Performance para traza upload→generate→provider→DB.
 
 ### Media prioridad
