@@ -59,10 +59,44 @@ const latencySamples: Record<KnownRegion, number[]> = {
 const MAX_SAMPLES = 100;
 const P95_FALLBACK_THRESHOLD_MS = 45_000; // 45 seconds
 
+/** Flush stats to Supabase every N samples so multiple instances share observations. */
+const FLUSH_EVERY = 10;
+let _samplesSinceFlush = 0;
+
 export function recordGenerationLatency(region: KnownRegion, durationMs: number): void {
   const samples = latencySamples[region];
   samples.push(durationMs);
   if (samples.length > MAX_SAMPLES) samples.shift();
+
+  _samplesSinceFlush++;
+  if (_samplesSinceFlush >= FLUSH_EVERY) {
+    _samplesSinceFlush = 0;
+    flushRegionStats().catch(() => {/* non-fatal */});
+  }
+}
+
+async function flushRegionStats(): Promise<void> {
+  const { isSupabaseConfigured, getSupabaseServiceClient } = await import("@/lib/supabase");
+  if (!isSupabaseConfigured()) return;
+
+  const regions: KnownRegion[] = ["us-east", "eu-west", "ap-southeast", "global"];
+  const sb = getSupabaseServiceClient();
+
+  await Promise.allSettled(
+    regions.map((region) => {
+      const sorted = [...latencySamples[region]].sort((a, b) => a - b);
+      if (sorted.length === 0) return Promise.resolve();
+      return sb
+        .from("region_latency_stats")
+        .upsert({
+          region,
+          sample_count: sorted.length,
+          p50_ms: percentile(sorted, 50),
+          p95_ms: percentile(sorted, 95),
+          updated_at: new Date().toISOString(),
+        }, { onConflict: "region" });
+    }),
+  );
 }
 
 function percentile(sorted: number[], p: number): number {

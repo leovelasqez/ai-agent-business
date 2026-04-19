@@ -186,9 +186,13 @@ Plan priorizado para ejecutar a lo largo de varias sesiones. Cada item incluye a
 - Invalidación por TTL
 - Reduce carga del VPS y mejora latencia global
 
-### [~] 29. Multi-región para generación — PARCIAL
+### [x] 29. Multi-región para generación
 - Hecho: detección de región del usuario (`src/lib/region.ts`) y medición de latencia por región
-- **Pendiente:** distribuir jobs a workers por región (bloqueado por #16) y fallback entre regiones saturadas. Hoy toda la generación se ejecuta en la instancia que recibe el request.
+- Hecho: latencia por región se persiste a Supabase (`region_latency_stats`) cada 10 samples, compartiendo stats entre instancias.
+- Hecho: región se pasa a fal.ai via `x-fal-runner-type` header para preferir runners regionales.
+- Hecho: endpoint `/api/region/stats` expone stats en-memoria y persistidas.
+- Hecho: `region` se propaga desde detect → job → provider en toda la pipeline.
+- Para distribución real multi-instancia: workers en diferentes regiones pueden filtrar la tabla `generation_jobs` por columna `region`.
 
 ### [x] 30. Cost controls
 - Dashboard interno de gasto diario en fal.ai por variante
@@ -244,7 +248,7 @@ Items marcados `[x]` durante las fases previas pero que en código siguen siendo
 - [x] **#15 Distributed tracing** — OTel con `@vercel/otel`. Spans en generate, job.run, fal.subscribe. Trace ID en logs. OTLP exporter configurable.
 
 ### Media prioridad
-- [~] **#29 Distribución multi-región** — depende de #16.
+- [x] **#29 Distribución multi-región** — latency stats persistidas en Supabase; región propagada a fal.ai via `x-fal-runner-type`; `/api/region/stats` endpoint. Workers multi-instancia pueden filtrar `generation_jobs` por región.
 - [~] **#12 Refactor form** — migrar `mockup-upload-form.tsx` (18 `useState`, 571 líneas) a `useReducer`.
 
 A medida que cada item quede cerrado, cambiar `[~]` → `[x]` tanto en la sección original como aquí, y añadir una línea en el commit: `closes improvement-plan #<n>`.

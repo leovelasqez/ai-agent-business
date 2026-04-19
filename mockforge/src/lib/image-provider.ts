@@ -1,4 +1,5 @@
 import type { PresetId } from "@/lib/presets";
+import type { KnownRegion } from "@/lib/region";
 
 export type GenerationVariant = "a" | "b" | "c" | "d";
 
@@ -13,6 +14,7 @@ export interface RunGenerationInput {
   customPrompt?: string;
   bgColor?: string;
   bgTexture?: string;
+  region?: KnownRegion;
 }
 
 export interface RunGenerationResult {

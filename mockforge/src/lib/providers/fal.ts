@@ -188,9 +188,31 @@ function buildFalInput(
   return base;
 }
 
+// Maps our region names to fal.ai runner type hints.
+// fal.ai uses the x-fal-runner-type header to prefer regional runners.
+const REGION_TO_FAL_RUNNER: Record<string, string> = {
+  "us-east": "SSD",          // fal US runners tagged SSD
+  "eu-west": "SSD_EU",       // fal EU runners
+  "ap-southeast": "SSD_APAC", // fal APAC runners
+  global: "",                // no hint — fal picks the least-loaded runner
+};
+
 export async function runFalGeneration(input: RunGenerationInput): Promise<RunGenerationResult> {
+  const runnerHint = input.region ? (REGION_TO_FAL_RUNNER[input.region] ?? "") : "";
+
   fal.config({
     credentials: getFalKey(),
+    ...(runnerHint
+      ? {
+          requestMiddleware: async (req) => ({
+            ...req,
+            headers: {
+              ...req.headers,
+              "x-fal-runner-type": runnerHint,
+            },
+          }),
+        }
+      : {}),
   });
 
   const variant = input.variant === "d" ? "d" : input.variant === "c" ? "c" : input.variant === "b" ? "b" : "a";

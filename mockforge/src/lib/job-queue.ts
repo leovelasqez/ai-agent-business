@@ -54,7 +54,7 @@ export function enqueueGenerationJob(input: GenerationJobInput) {
     const startMs = Date.now();
 
     try {
-      const result = await withSpan("generation.job.run", () => runGeneration(input), {
+      const result = await withSpan("generation.job.run", () => runGeneration({ ...input, region: input.region }), {
         "job.id": id,
         "job.preset": input.preset,
         "job.variant": input.variant,

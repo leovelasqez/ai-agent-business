@@ -125,7 +125,7 @@ export async function POST(request: Request) {
 
   try {
     const generationStart = Date.now();
-    const result = await withSpan("generate.sync", () => runGeneration(generationInput), {
+    const result = await withSpan("generate.sync", () => runGeneration({ ...generationInput, region }), {
       preset,
       variant,
       provider,
