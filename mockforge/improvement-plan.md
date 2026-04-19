@@ -100,9 +100,9 @@ Plan priorizado para ejecutar a lo largo de varias sesiones. Cada item incluye a
 - Mínimo: `lint` + `build` + `playwright` en cada PR
 - Idealmente: deploy automático a staging en merge a `main`
 
-### [~] 15. Observabilidad — PARCIAL
+### [x] 15. Observabilidad — Distributed tracing
 - Hecho: logging estructurado con request IDs, Sentry cliente+server, health check real, métricas de fallback de storage
-- **Pendiente:** distributed tracing (OpenTelemetry / Sentry Performance) para correlacionar upload → generate → provider → DB en una sola traza.
+- Hecho: distributed tracing con OpenTelemetry (`@vercel/otel`). `src/instrumentation.ts` registra el tracer; `src/lib/tracing.ts` expone `withSpan()` y `getTraceId()`. Spans clave: `generate.sync`, `generation.job.run`, `fal.subscribe`. Trace ID propagado en logs. Exporter configurable vía `OTEL_EXPORTER_OTLP_ENDPOINT`.
 
 ### [x] 16. Job queue — Supabase persistente
 - Hecho: contrato `/api/generate` devuelve `jobId` y hay endpoint `/api/jobs/[id]` para polling
@@ -241,7 +241,7 @@ Items marcados `[x]` durante las fases previas pero que en código siguen siendo
 
 ### Alta prioridad
 - [x] **#9 Auth real** — Supabase Auth magic link implementado. Middleware refresca sesión; `generate` usa user ID verificado. Fallback a cookie anónima si Supabase no está configurado.
-- [~] **#15 Distributed tracing** — añadir OpenTelemetry o Sentry Performance para traza upload→generate→provider→DB.
+- [x] **#15 Distributed tracing** — OTel con `@vercel/otel`. Spans en generate, job.run, fal.subscribe. Trace ID en logs. OTLP exporter configurable.
 
 ### Media prioridad
 - [~] **#29 Distribución multi-región** — depende de #16.

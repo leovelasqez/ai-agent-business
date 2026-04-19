@@ -11,6 +11,7 @@ import {
   VARIANT_LABELS,
   mapFormatToSize,
 } from "@/lib/model-config";
+import { withSpan } from "@/lib/tracing";
 import type { RunGenerationInput, RunGenerationResult } from "@/lib/image-provider";
 
 interface FalImageOutput {
@@ -225,10 +226,10 @@ export async function runFalGeneration(input: RunGenerationInput): Promise<RunGe
   let result;
 
   try {
-    result = await fal.subscribe(model, {
+    result = await withSpan("fal.subscribe", () => fal.subscribe(model, {
       input: falInput,
       logs: true,
-    });
+    }), { model, variant: effectiveVariant });
   } catch (error) {
     const detail = error && typeof error === "object" && "body" in error ? (error as { body?: unknown }).body : undefined;
     const message = error instanceof Error ? error.message : "Unknown fal error";

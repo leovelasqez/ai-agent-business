@@ -3,6 +3,7 @@ import { dbCreateJob, dbUpdateJob, dbGetJob } from "@/lib/db/jobs";
 import { runGeneration } from "@/lib/image-provider";
 import { incrementMetric } from "@/lib/metrics";
 import { recordGenerationLatency } from "@/lib/region";
+import { withSpan } from "@/lib/tracing";
 import type { GenerationJobInput, GenerationJobState } from "@/lib/job-queue-types";
 
 export type { GenerationJobInput, GenerationJobState };
@@ -53,7 +54,12 @@ export function enqueueGenerationJob(input: GenerationJobInput) {
     const startMs = Date.now();
 
     try {
-      const result = await runGeneration(input);
+      const result = await withSpan("generation.job.run", () => runGeneration(input), {
+        "job.id": id,
+        "job.preset": input.preset,
+        "job.variant": input.variant,
+        "job.region": input.region ?? "global",
+      });
       recordGenerationLatency(input.region ?? "global", Date.now() - startMs);
       const generationId =
         (await insertGeneration({

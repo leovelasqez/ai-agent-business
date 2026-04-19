@@ -8,6 +8,7 @@ import { detectRegion, resolveEffectiveRegion, recordGenerationLatency } from "@
 import { isBudgetExceeded, recordGenerationCost } from "@/lib/cost-control";
 import { maybeGrantFreeTrial, deductCredits, CREDIT_COST } from "@/lib/credits";
 import { getServerUser } from "@/lib/supabase-server";
+import { withSpan, getTraceId } from "@/lib/tracing";
 import type { PresetId } from "@/lib/presets";
 
 export async function POST(request: Request) {
@@ -97,11 +98,12 @@ export async function POST(request: Request) {
     region,
   };
 
+  const traceId = getTraceId();
   log("info", "generation request accepted", {
     requestId,
     route: "/api/generate",
     method: "POST",
-    extra: { preset, variant, asyncRequested, provider },
+    extra: { preset, variant, asyncRequested, provider, traceId },
   });
 
   if (asyncRequested) {
@@ -123,7 +125,12 @@ export async function POST(request: Request) {
 
   try {
     const generationStart = Date.now();
-    const result = await runGeneration(generationInput);
+    const result = await withSpan("generate.sync", () => runGeneration(generationInput), {
+      preset,
+      variant,
+      provider,
+      region,
+    });
     recordGenerationLatency(region, Date.now() - generationStart);
     recordGenerationCost(variant);
     const generationId =
