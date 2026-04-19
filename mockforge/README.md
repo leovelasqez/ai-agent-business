@@ -1,32 +1,35 @@
 # MockForge
 
-MockForge genera mockups ecommerce a partir de una sola foto de producto.
+MockForge genera mockups ecommerce de calidad comercial a partir de una sola foto de producto.
 
 ## Stack
-- Next.js 16
-- React 19
+- Next.js 16 + React 19
 - Tailwind CSS 4
-- fal.ai
+- fal.ai (generación de imagen y video)
 - Supabase (DB + Storage)
+- Stripe (pagos)
+- PostHog (analytics)
+- Sentry (error tracking)
+- Bunny CDN (opcional, assets)
 
 ## Qué hace hoy
-- recibe una imagen del producto
-- la guarda en storage local o Supabase Storage
-- construye un prompt según preset/categoría/formato
-- llama al provider activo
-- guarda outputs generados
-- persiste metadata de la generación en Supabase si está configurado
-- muestra previews reales en `/results`
+- Recibe imagen del producto (con hardening: magic bytes + MAX 10MB + rate limit)
+- Guarda en storage local, Supabase Storage o Bunny CDN
+- Construye prompt según preset/categoría/formato
+- Llama al provider activo y genera el mockup
+- Persiste metadata en Supabase (con soft delete GDPR)
+- Muestra previews reales en `/results` y galería pública
+- Checkout real con Stripe + sistema de créditos
+- Post-generación: upscale, variación, batch de 3 variantes, video 5s
 
-## Provider activo
-- `fal`
-- variantes disponibles:
-  - A: FLUX Kontext Dev
-  - B: FLUX Kontext Pro
-  - C: GPT Image 1 via fal
-  - D: Nano Banana 2
+## Variantes de modelo
+- **A** · Nano Banana 2 — rápido y económico
+- **B** · GPT Image 1 — edición con alta fidelidad (+ masked editing automático con rembg + OCR)
+- **C** · FLUX.2 Pro — máxima calidad
+- **D** · Personalizado — via env var
 
 ## Configuración
+
 Crea `mockforge/.env.local` a partir de `.env.example`.
 
 ### Variables mínimas
@@ -37,7 +40,7 @@ FAL_KEY=...
 NEXT_PUBLIC_APP_URL=http://localhost:3000
 ```
 
-### Para activar Supabase de verdad
+### Supabase (persistencia real)
 
 ```bash
 NEXT_PUBLIC_SUPABASE_URL=...
@@ -46,78 +49,121 @@ SUPABASE_SERVICE_ROLE_KEY=...
 STORAGE_PROVIDER=supabase
 ```
 
-Notas:
-- `SUPABASE_SERVICE_ROLE_KEY` es solo server-side
-- si `STORAGE_PROVIDER` no es `supabase`, o faltan vars, MockForge hace fallback a storage local
-- la persistencia en DB también es opcional, pero sin vars de Supabase no habrá historial real
-
-### Modelos opcionales
+### Stripe (checkout)
 
 ```bash
-FAL_MODEL=fal-ai/flux-kontext/dev
-FAL_MODEL_A=fal-ai/flux-kontext/dev
-FAL_MODEL_B=fal-ai/flux-pro/kontext
-FAL_MODEL_C=fal-ai/gpt-image-1/edit-image
-REPLICATE_API_TOKEN=...
-REPLICATE_MODEL=black-forest-labs/flux-kontext-dev
+STRIPE_SECRET_KEY=...
+STRIPE_WEBHOOK_SECRET=...
+STRIPE_PRICE_SINGLE_PACK=price_...
+STRIPE_PRICE_BUNDLE=price_...
 ```
 
-Si pruebas desde un VPS o un dominio, cambia `NEXT_PUBLIC_APP_URL` por una URL pública real.
+### Opcionales
+
+```bash
+# Modelos
+FAL_MODEL_A=fal-ai/nano-banana/edit
+FAL_MODEL_B=fal-ai/gpt-image-1/edit-image
+FAL_MODEL_C=fal-ai/flux-pro/kontext
+
+# Analytics y observabilidad
+NEXT_PUBLIC_POSTHOG_KEY=...
+SENTRY_DSN=...
+
+# CDN (Bunny)
+BUNNY_STORAGE_API_KEY=...
+BUNNY_STORAGE_ZONE=...
+BUNNY_CDN_URL=...
+
+# Cost controls
+COST_LIMIT_DAILY_USD=...
+COST_LIMIT_MONTHLY_USD=...
+```
+
+Notas:
+- `SUPABASE_SERVICE_ROLE_KEY` es solo server-side
+- Si `STORAGE_PROVIDER` no es `supabase`, fallback a storage local
+- Si faltan vars de Bunny, fallback a Supabase/local
 
 ## Supabase
-Aplicar migraciones:
 
 ```bash
 supabase db push
 ```
 
-Migraciones incluidas:
-- tabla `generations`
-- buckets `mockforge-inputs` y `mockforge-outputs`
-- policies públicas de lectura para ambos buckets
+Migraciones incluidas: `generations`, buckets + policies, índices de performance, créditos, galería pública, soft delete GDPR, hardening.
 
-## Desarrollo local
+## Desarrollo
+
 ```bash
 npm install
-npm run dev
+npm run dev          # http://localhost:3000
+npm run build
+npm run lint
+npm test             # unit tests
+npm run test:e2e     # Playwright
 ```
 
-## Endpoints útiles
-### Health del provider
-```bash
-curl http://127.0.0.1:3000/api/provider/health
-```
+## i18n
+Soporta 5 idiomas: EN, ES, FR, PT, DE (detección automática por `Accept-Language` + override en UI).
 
-### Debug de upload
-- UI: `/debug/upload`
-- endpoint: `POST /api/debug/upload`
+## Endpoints clave
 
-### Resultado por id
-- endpoint: `GET /api/result/:id`
-- usa Supabase cuando está configurado
+| Endpoint | Descripción |
+|---|---|
+| `POST /api/upload` | Upload con magic bytes + rate limit |
+| `POST /api/generate` | Generación (rate limit + kill switch) |
+| `POST /api/generate/batch` | 3 variantes en paralelo |
+| `POST /api/generate/upscale` | Upscale con clarity-upscaler |
+| `POST /api/generate/variation` | "Más como este" |
+| `POST /api/generate/video` | Video 5s con kling-video |
+| `POST /api/v1/generate` | API pública (Bearer token) |
+| `GET /api/result/:id` | Resultado por id |
+| `GET /api/gallery` | Galería pública opt-in |
+| `GET /api/credits` | Saldo de créditos |
+| `POST /api/checkout` | Stripe Checkout real |
+| `GET /api/provider/health` | Health del provider |
+| `GET /api/admin/costs` | Dashboard interno de gasto |
+| `POST /api/admin/cleanup` | Purga uploads >7 días |
 
 ## Scripts
+
 ```bash
 npm run dev
 npm run build
 npm run start
 npm run lint
 npm test
+npm run test:e2e
 ```
 
 ## Estado actual
-La app funciona end-to-end con imagen válida. También maneja mejor el caso de navegadores embebidos como Telegram/Instagram, que suelen romper uploads o requests.
+
+### ✅ Funciona en producción
+- Upload hardening (magic bytes, MAX 10MB, rate limit por sesión)
+- Generación real (variantes A/B/C/D) con masked editing + OCR
+- Stripe Checkout con webhook y sistema de créditos (free trial 3 + packs)
+- Post-generación: upscale, variación, batch, video
+- Historial en UI (`/history`, `/history/[id]`) y galería pública (`/gallery`)
+- Analytics con PostHog + error tracking con Sentry
+- Cost controls con kill switch automático
+- CI/CD en GitHub Actions (lint + build + tests + e2e)
+- i18n en 5 idiomas
+
+### ⚠️ Stubs / pendientes conocidos
+- **Job queue**: `src/lib/job-queue.ts` usa `Map` en memoria — NO usa BullMQ/Inngest. Los jobs se pierden al reiniciar el servidor
+- **Auth**: solo sesiones anónimas con cookie `mf_session`. Sin NextAuth/Clerk
+- **Multi-región**: hay detección de región, pero los jobs no se distribuyen
+- **Observabilidad**: Sentry + request IDs sí, distributed tracing no
+- **Form refactor**: `mockup-upload-form.tsx` sigue con ~13 `useState` en lugar de `useReducer`
 
 ## Deploy
-### Recomendado para producción
-- Vercel o servidor Node estable
-- dominio + HTTPS
-- `NEXT_PUBLIC_APP_URL` apuntando al dominio real
-- `FAL_KEY` y `SUPABASE_SERVICE_ROLE_KEY` solo en variables de entorno del servidor
-- `STORAGE_PROVIDER=supabase` para no depender del filesystem local
 
-## Pendientes obvios
-- checkout real
-- historial/listado de generaciones en UI
-- auth si se vuelve pública
-- cola de jobs si el tráfico sube
+Ver [DEPLOY.md](../DEPLOY.md) para la guía completa (pm2/systemd, Nginx, SSL Let's Encrypt, migraciones Supabase).
+
+Producción recomendada:
+- Vercel o VPS con Node 22
+- HTTPS + dominio
+- `NEXT_PUBLIC_APP_URL` con URL pública real
+- `STORAGE_PROVIDER=supabase` (o `bunny`) para no depender del filesystem
+- Variables sensibles solo server-side

@@ -7,15 +7,19 @@ Proyecto base para construir productos operados por IA con foco en velocidad de 
 **MockForge** es el primer MVP del portfolio: una app para generar mockups visuales de ecommerce a partir de una foto de producto.
 
 ### Qué ya existe
-- app en Next.js
-- flujo de upload
-- generación real conectada a fal.ai
-- resultados renderizados en frontend
-- capa abstracta de providers para cambiar motor sin romper la app
-- documentación base de producto y arquitectura
+- app Next.js 16 + React 19 end-to-end
+- upload hardening (magic bytes, MAX 10MB, rate limiting)
+- generación con fal.ai (4 variantes: Nano Banana 2, GPT Image, FLUX.2 Pro, custom)
+- masked editing automático con rembg + OCR (preserva texto de empaques)
+- post-generación: upscale, variación, batch paralelo, video 5s
+- Stripe Checkout + sistema de créditos (free trial + packs)
+- galería pública, historial, API pública con Bearer tokens
+- analytics PostHog + error tracking Sentry + cost controls con kill switch
+- i18n 5 idiomas (EN/ES/FR/PT/DE)
+- CI/CD en GitHub Actions
 
 ### Estado actual
-El MVP ya cruza casi todo el camino end-to-end. El cuello de botella principal detectado fue el comportamiento del file picker en navegadores embebidos tipo Telegram webview.
+MVP en producción. 28/32 items del `improvement-plan.md` implementados realmente. Pendientes conocidos: job queue distribuida (hoy `Map` en memoria), auth de usuario real, distributed tracing.
 
 ## Estructura del repo
 - `mockforge/` → app principal
@@ -71,7 +75,7 @@ El punto de entrada recomendado es:
 4. `next-steps.md`
 
 ## Siguiente jugada recomendada
-1. preparar deploy estable
-2. cerrar UX de upload fuera de webviews rotas
-3. conectar checkout real
-4. empezar validación con usuarios
+1. migrar job queue de `Map` en memoria a BullMQ/Inngest (jobs se pierden al reiniciar)
+2. auth real con NextAuth/Clerk si la app se vuelve pública
+3. validación con usuarios y métricas de conversión en PostHog
+4. distributed tracing para debug en producción
