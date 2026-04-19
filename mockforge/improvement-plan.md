@@ -59,10 +59,9 @@ Plan priorizado para ejecutar a lo largo de varias sesiones. Cada item incluye a
 - Faltan páginas/listado completos en UI
 - Considerar paginación (hoy hardcoded `limit=30` en `getRecentGenerations`)
 
-### [x] 9. Sesiones anónimas (auth mínima)
-- Sin auth: ratings (`/api/rate`), resultados (`/api/result/[id]`) y generación son públicos/manipulables
-- Opciones: NextAuth con magic link, Clerk si se monetiza
-- Asociar generaciones a `user_id` en DB
+### [~] 9. Sesiones anónimas (auth mínima) — PARCIAL
+- Hecho: cookie `mf_session` asocia generaciones a sesión anónima
+- **Pendiente:** auth real (NextAuth magic link o Clerk) para monetización sostenible. Hoy ratings/resultados siguen siendo manipulables fuera del dueño de la cookie.
 
 ---
 
@@ -82,12 +81,10 @@ Plan priorizado para ejecutar a lo largo de varias sesiones. Cada item incluye a
 - Falta `AbortController`: cambiar params durante fetch deja peticiones huérfanas
 - Type casting inseguro: `json.data as unknown` sin narrowing (línea 367)
 
-### [x] 12. Refactor `mockup-upload-form.tsx`
+### [~] 12. Refactor `mockup-upload-form.tsx` — PARCIAL
 **Archivo:** `src/components/mockup-upload-form.tsx`
-- 13 `useState` → `useReducer` o context
-- Lógica de upload duplicada (línea 124 y callback FilePicker)
-- Memoizar `VARIANTS` (línea 33), recreado en cada render
-- Auto-clear de errores tras N segundos
+- Hecho: deduplicación de variants/format helpers, memoización de `VARIANTS`, auto-clear de errores
+- **Pendiente:** el componente sigue con **18 `useState`** (571 líneas). Migrar a `useReducer` o context para reducir re-renders y facilitar testing.
 
 ### [x] 13. Error handling consistente
 - `friendlyError()` duplicado entre cliente (`results-view.tsx`) y `src/app/api/generate/route.ts:80`
@@ -103,17 +100,13 @@ Plan priorizado para ejecutar a lo largo de varias sesiones. Cada item incluye a
 - Mínimo: `lint` + `build` + `playwright` en cada PR
 - Idealmente: deploy automático a staging en merge a `main`
 
-### [x] 15. Observabilidad
-- Logging estructurado con correlation IDs por request
-- Sentry para errores cliente y servidor
-- Métricas de fallback Supabase→local (hoy solo `console.warn` en `storage-provider.ts:169`)
-- Health check real en `/api/provider/health` (testar conectividad FAL, no solo `FAL_KEY` exists)
+### [~] 15. Observabilidad — PARCIAL
+- Hecho: logging estructurado con request IDs, Sentry cliente+server, health check real, métricas de fallback de storage
+- **Pendiente:** distributed tracing (OpenTelemetry / Sentry Performance) para correlacionar upload → generate → provider → DB en una sola traza.
 
-### [x] 16. Job queue
-- Generación síncrona bloquea respuesta HTTP
-- Si fal.ai tarda >30s en Vercel → timeout
-- Opciones: BullMQ + Redis, Inngest, AWS SQS
-- Cambia el contrato de `/api/generate` (devolver `jobId`, polling/SSE)
+### [~] 16. Job queue — PARCIAL (stub en memoria)
+- Hecho: contrato `/api/generate` devuelve `jobId` y hay endpoint `/api/jobs/[id]` para polling
+- **Pendiente:** `src/lib/job-queue.ts` usa `Map` en memoria — los jobs **se pierden al reiniciar el servidor** y no escala a múltiples instancias. Migrar a BullMQ + Redis, Inngest o AWS SQS.
 
 ### [x] 17. Tests
 - Hoy: 3 unit tests (file-storage, model-config, storage-provider) + 1 Playwright smoke
@@ -193,10 +186,9 @@ Plan priorizado para ejecutar a lo largo de varias sesiones. Cada item incluye a
 - Invalidación por TTL
 - Reduce carga del VPS y mejora latencia global
 
-### [x] 29. Multi-región para generación
-- Queue distribuida por región (item 16) con workers cercanos al usuario
-- Fallback entre regiones si una saturada
-- Medir p95 de latencia por región
+### [~] 29. Multi-región para generación — PARCIAL
+- Hecho: detección de región del usuario (`src/lib/region.ts`) y medición de latencia por región
+- **Pendiente:** distribuir jobs a workers por región (bloqueado por #16) y fallback entre regiones saturadas. Hoy toda la generación se ejecuta en la instancia que recibe el request.
 
 ### [x] 30. Cost controls
 - Dashboard interno de gasto diario en fal.ai por variante
@@ -237,3 +229,22 @@ Plan priorizado para ejecutar a lo largo de varias sesiones. Cada item incluye a
 - Mantener `status.md` y `next-steps.md` actualizados al completar items
 - No commitear `.env.local` ni claves reales
 - Probar en navegador normal antes de webviews (Telegram/Instagram)
+
+---
+
+## 🔄 Pendientes reales (verificado 2026-04-19)
+
+Items marcados `[x]` durante las fases previas pero que en código siguen siendo stubs o quedaron parciales. Leyenda: `[ ]` pendiente · `[~]` parcial · `[x]` completo verificado.
+
+### Críticos
+- [~] **#16 Job queue persistente** — reemplazar `Map` en memoria de `src/lib/job-queue.ts` por BullMQ+Redis o Inngest. Bloquea #29 y producción multi-instancia.
+
+### Alta prioridad
+- [~] **#9 Auth real** — hoy solo cookie `mf_session`. Evaluar NextAuth (magic link) o Clerk.
+- [~] **#15 Distributed tracing** — añadir OpenTelemetry o Sentry Performance para traza upload→generate→provider→DB.
+
+### Media prioridad
+- [~] **#29 Distribución multi-región** — depende de #16.
+- [~] **#12 Refactor form** — migrar `mockup-upload-form.tsx` (18 `useState`, 571 líneas) a `useReducer`.
+
+A medida que cada item quede cerrado, cambiar `[~]` → `[x]` tanto en la sección original como aquí, y añadir una línea en el commit: `closes improvement-plan #<n>`.
