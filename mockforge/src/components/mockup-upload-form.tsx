@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useReducer } from "react";
 import { useRouter } from "next/navigation";
 import { FilePicker } from "@/components/file-picker";
 import { PRESETS, type PresetId } from "@/lib/presets";
@@ -9,6 +9,92 @@ import { CURATED_MODELS } from "@/lib/model-config";
 import { useLanguage } from "@/lib/language-context";
 import { track } from "@/lib/analytics";
 import type { GenerationVariant } from "@/lib/image-provider";
+
+// ── State shape ──────────────────────────────────────────────────────────────
+
+interface FormState {
+  productName: string;
+  category: string;
+  format: string;
+  preset: PresetId;
+  variant: GenerationVariant;
+  customModel: string;
+  customPrompt: string;
+  bgColor: string;
+  bgTexture: string;
+  showBgControls: boolean;
+  compareMode: boolean;
+  compareVariants: Set<GenerationVariant>;
+  selectedSourceImageUrl: string | null;
+  selectedFileName: string;
+  isUploadingFile: boolean;
+  isSubmitting: boolean;
+  error: string | null;
+}
+
+// ── Actions ───────────────────────────────────────────────────────────────────
+
+type FormAction =
+  | { type: "SET_PRODUCT_NAME"; value: string }
+  | { type: "SET_CATEGORY"; value: string }
+  | { type: "SET_FORMAT"; value: string }
+  | { type: "SET_PRESET"; value: PresetId }
+  | { type: "SET_VARIANT"; value: GenerationVariant }
+  | { type: "SET_CUSTOM_MODEL"; value: string }
+  | { type: "SET_CUSTOM_PROMPT"; value: string }
+  | { type: "SET_BG_COLOR"; value: string }
+  | { type: "SET_BG_TEXTURE"; value: string }
+  | { type: "TOGGLE_BG_CONTROLS" }
+  | { type: "TOGGLE_COMPARE_MODE" }
+  | { type: "TOGGLE_COMPARE_VARIANT"; variant: GenerationVariant }
+  | { type: "ENABLE_BATCH_ALL" }
+  | { type: "UPLOAD_START"; fileName: string }
+  | { type: "UPLOAD_SUCCESS"; url: string }
+  | { type: "UPLOAD_FAIL" }
+  | { type: "SUBMIT_START" }
+  | { type: "SUBMIT_DONE" }
+  | { type: "CLEAR_FILE" }
+  | { type: "SET_ERROR"; message: string | null };
+
+function reducer(state: FormState, action: FormAction): FormState {
+  switch (action.type) {
+    case "SET_PRODUCT_NAME":    return { ...state, productName: action.value };
+    case "SET_CATEGORY":        return { ...state, category: action.value };
+    case "SET_FORMAT":          return { ...state, format: action.value };
+    case "SET_PRESET":          return { ...state, preset: action.value };
+    case "SET_VARIANT":         return { ...state, variant: action.value };
+    case "SET_CUSTOM_MODEL":    return { ...state, customModel: action.value };
+    case "SET_CUSTOM_PROMPT":   return { ...state, customPrompt: action.value };
+    case "SET_BG_COLOR":        return { ...state, bgColor: action.value };
+    case "SET_BG_TEXTURE":      return { ...state, bgTexture: action.value };
+    case "SET_ERROR":           return { ...state, error: action.message };
+    case "TOGGLE_BG_CONTROLS":  return { ...state, showBgControls: !state.showBgControls };
+    case "TOGGLE_COMPARE_MODE": return { ...state, compareMode: !state.compareMode };
+    case "ENABLE_BATCH_ALL":    return { ...state, compareMode: true, compareVariants: new Set(["a", "b", "c"]) };
+    case "TOGGLE_COMPARE_VARIANT": {
+      const next = new Set(state.compareVariants);
+      if (next.has(action.variant)) next.delete(action.variant);
+      else next.add(action.variant);
+      return { ...state, compareVariants: next };
+    }
+    case "UPLOAD_START":
+      return { ...state, selectedFileName: action.fileName, selectedSourceImageUrl: null, isUploadingFile: true, error: null };
+    case "UPLOAD_SUCCESS":
+      return { ...state, selectedSourceImageUrl: action.url, isUploadingFile: false };
+    case "UPLOAD_FAIL":
+      return { ...state, selectedFileName: "", selectedSourceImageUrl: null, isUploadingFile: false };
+    case "SUBMIT_START":
+      return { ...state, isSubmitting: true, error: null };
+    case "SUBMIT_DONE":
+      return { ...state, isSubmitting: false };
+    case "CLEAR_FILE":
+      return { ...state, selectedFileName: "", selectedSourceImageUrl: null, error: null };
+    default:
+      return state;
+  }
+}
+
+// ── Props & initial state factory ─────────────────────────────────────────────
 
 interface MockupUploadFormProps {
   initialSourceImageUrl?: string;
@@ -19,17 +105,37 @@ interface MockupUploadFormProps {
   initialVariant?: GenerationVariant;
 }
 
-export function MockupUploadForm({
-  initialSourceImageUrl,
-  initialPreset = "clean_studio",
-  initialCategory = "",
-  initialFormat = "1:1 square",
-  initialProductName = "",
-  initialVariant = "a",
-}: MockupUploadFormProps) {
+function makeInitialState(props: MockupUploadFormProps): FormState {
+  return {
+    productName: props.initialProductName ?? "",
+    category: props.initialCategory ?? "",
+    format: props.initialFormat ?? "1:1 square",
+    preset: props.initialPreset ?? "clean_studio",
+    variant: props.initialVariant ?? "a",
+    customModel: CURATED_MODELS[0].id,
+    customPrompt: "",
+    bgColor: "",
+    bgTexture: "",
+    showBgControls: false,
+    compareMode: false,
+    compareVariants: new Set(["b", "c", "d"]),
+    selectedSourceImageUrl: null,
+    selectedFileName: "",
+    isUploadingFile: false,
+    isSubmitting: false,
+    error: null,
+  };
+}
+
+// ── Component ─────────────────────────────────────────────────────────────────
+
+export function MockupUploadForm(props: MockupUploadFormProps) {
+  const { initialSourceImageUrl } = props;
   const router = useRouter();
   const { t } = useLanguage();
   const f = t.form;
+
+  const [state, dispatch] = useReducer(reducer, props, makeInitialState);
 
   const VARIANTS = useMemo(
     () => [
@@ -41,45 +147,23 @@ export function MockupUploadForm({
     [f.variants],
   );
 
-  const [productName, setProductName] = useState(initialProductName);
-  const [category, setCategory] = useState(initialCategory);
-  const [format, setFormat] = useState(initialFormat);
-  const [preset, setPreset] = useState<PresetId>(initialPreset);
-  const [variant, setVariant] = useState<GenerationVariant>(initialVariant);
-  const [customModel, setCustomModel] = useState<string>(CURATED_MODELS[0].id);
-  const [customPrompt, setCustomPrompt] = useState<string>("");
-  const [bgColor, setBgColor] = useState<string>("");
-  const [bgTexture, setBgTexture] = useState<string>("");
-  const [showBgControls, setShowBgControls] = useState(false);
-  const [compareMode, setCompareMode] = useState(false);
-  const [compareVariants, setCompareVariants] = useState<Set<GenerationVariant>>(
-    new Set(["b", "c", "d"]),
-  );
-  const [selectedSourceImageUrl, setSelectedSourceImageUrl] = useState<string | null>(null);
-  const [selectedFileName, setSelectedFileName] = useState<string>("");
-  const [isUploadingFile, setIsUploadingFile] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const effectiveSourceImageUrl = state.selectedSourceImageUrl || initialSourceImageUrl || null;
 
-  const effectiveSourceImageUrl = selectedSourceImageUrl || initialSourceImageUrl || null;
   const canSubmit = useMemo(() => {
     const hasImage = Boolean(effectiveSourceImageUrl);
-    const hasVariants = compareMode ? compareVariants.size >= 2 : true;
-    return !isSubmitting && !isUploadingFile && hasImage && hasVariants;
-  }, [effectiveSourceImageUrl, isSubmitting, isUploadingFile, compareMode, compareVariants]);
+    const hasVariants = state.compareMode ? state.compareVariants.size >= 2 : true;
+    return !state.isSubmitting && !state.isUploadingFile && hasImage && hasVariants;
+  }, [effectiveSourceImageUrl, state.isSubmitting, state.isUploadingFile, state.compareMode, state.compareVariants]);
 
-  // Auto-clear upload/form errors after 6 s so the UI recovers without manual dismissal
+  // Auto-clear errors after 6 s
   useEffect(() => {
-    if (!error) return;
-    const timer = setTimeout(() => setError(null), 6000);
+    if (!state.error) return;
+    const timer = setTimeout(() => dispatch({ type: "SET_ERROR", message: null }), 6000);
     return () => clearTimeout(timer);
-  }, [error]);
+  }, [state.error]);
 
   const uploadFile = useCallback(async (file: File) => {
-    setSelectedFileName(file.name);
-    setSelectedSourceImageUrl(null);
-    setIsUploadingFile(true);
-    setError(null);
+    dispatch({ type: "UPLOAD_START", fileName: file.name });
 
     try {
       const uploadFormData = new FormData();
@@ -96,45 +180,24 @@ export function MockupUploadForm({
         throw new Error(uploadJson?.message || "Upload failed");
       }
 
-      setSelectedSourceImageUrl(uploadJson.data.sourceImageUrl);
+      dispatch({ type: "UPLOAD_SUCCESS", url: uploadJson.data.sourceImageUrl });
       track("upload_complete", { fileName: file.name, fileSize: file.size, fileType: file.type });
       return uploadJson.data.sourceImageUrl as string;
     } catch (uploadError) {
-      setSelectedFileName("");
-      setSelectedSourceImageUrl(null);
-      const message =
-        uploadError instanceof Error ? uploadError.message : "Unknown upload error";
-      setError(message);
+      dispatch({ type: "UPLOAD_FAIL" });
+      const message = uploadError instanceof Error ? uploadError.message : "Unknown upload error";
+      dispatch({ type: "SET_ERROR", message });
       throw new Error(message);
-    } finally {
-      setIsUploadingFile(false);
     }
   }, []);
 
-  const toggleCompareVariant = (v: GenerationVariant) => {
-    setCompareVariants((prev) => {
-      const next = new Set(prev);
-      if (next.has(v)) next.delete(v);
-      else next.add(v);
-      return next;
-    });
-  };
-
-  const enableBatchAll = () => {
-    setCompareMode(true);
-    setCompareVariants(new Set(["a", "b", "c"]));
-  };
-
   const handleSubmit = async () => {
-    setIsSubmitting(true);
-    setError(null);
+    dispatch({ type: "SUBMIT_START" });
 
     try {
       let nextSourceImageUrl = effectiveSourceImageUrl;
 
-      const domFileInput = document.querySelector(
-        'input[type="file"]',
-      ) as HTMLInputElement | null;
+      const domFileInput = document.querySelector('input[type="file"]') as HTMLInputElement | null;
 
       if (!nextSourceImageUrl && domFileInput?.files?.[0]) {
         nextSourceImageUrl = await uploadFile(domFileInput.files[0]);
@@ -153,42 +216,41 @@ export function MockupUploadForm({
       }
 
       const params = new URLSearchParams({
-        preset,
-        category: category || "unspecified",
-        format,
-        productName: productName || "Untitled product",
+        preset: state.preset,
+        category: state.category || "unspecified",
+        format: state.format,
+        productName: state.productName || "Untitled product",
         sourceImageUrl: nextSourceImageUrl.trim(),
       });
 
-      if (compareMode && compareVariants.size >= 2) {
-        params.set("compareVariants", [...compareVariants].join(","));
+      if (state.compareMode && state.compareVariants.size >= 2) {
+        params.set("compareVariants", [...state.compareVariants].join(","));
       } else {
-        params.set("variant", variant);
+        params.set("variant", state.variant);
       }
 
-      if (variant === "d" || (compareMode && compareVariants.has("d"))) {
-        params.set("customModel", customModel);
-        if (customPrompt.trim()) params.set("customPrompt", customPrompt.trim());
+      if (state.variant === "d" || (state.compareMode && state.compareVariants.has("d"))) {
+        params.set("customModel", state.customModel);
+        if (state.customPrompt.trim()) params.set("customPrompt", state.customPrompt.trim());
       }
 
-      if (bgColor.trim()) params.set("bgColor", bgColor.trim());
-      if (bgTexture.trim()) params.set("bgTexture", bgTexture.trim());
+      if (state.bgColor.trim()) params.set("bgColor", state.bgColor.trim());
+      if (state.bgTexture.trim()) params.set("bgTexture", state.bgTexture.trim());
 
       router.push(`/results?${params.toString()}`);
     } catch (submitError) {
-      const message =
-        submitError instanceof Error ? submitError.message : "Unknown upload error";
-      setError(message);
-      setIsSubmitting(false);
+      const message = submitError instanceof Error ? submitError.message : "Unknown upload error";
+      dispatch({ type: "SET_ERROR", message });
+      dispatch({ type: "SUBMIT_DONE" });
     }
   };
 
-  const submitLabel = isSubmitting
+  const submitLabel = state.isSubmitting
     ? f.submitPreparing
-    : isUploadingFile
+    : state.isUploadingFile
       ? f.submitUploading
-      : compareMode
-        ? f.submitCompare.replace("{n}", String(compareVariants.size))
+      : state.compareMode
+        ? f.submitCompare.replace("{n}", String(state.compareVariants.size))
         : f.submitGenerate;
 
   const inputClass =
@@ -204,20 +266,15 @@ export function MockupUploadForm({
         {/* File picker card */}
         <div className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-6">
           <FilePicker
-            selectedFileName={selectedFileName}
-            isUploading={isUploadingFile}
+            selectedFileName={state.selectedFileName}
+            isUploading={state.isUploadingFile}
             onFileSelected={async (file) => {
-              if (!file) {
-                setError(null);
-                setSelectedFileName("");
-                setSelectedSourceImageUrl(null);
-                return;
-              }
+              if (!file) { dispatch({ type: "CLEAR_FILE" }); return; }
               await uploadFile(file);
             }}
           />
 
-          {effectiveSourceImageUrl && !selectedSourceImageUrl ? (
+          {effectiveSourceImageUrl && !state.selectedSourceImageUrl ? (
             <div className="mt-5 rounded-xl border border-[#05DF72]/15 bg-[#05DF72]/[0.05] p-4">
               <div className="mb-3 text-sm text-lime-200/80">{f.preloadedImage}</div>
               <div className="relative aspect-square max-w-sm overflow-hidden rounded-xl border border-white/[0.08] bg-black/30">
@@ -239,23 +296,19 @@ export function MockupUploadForm({
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
-              <label className="mb-2 block text-xs font-medium text-white/40">
-                {f.productName}
-              </label>
+              <label className="mb-2 block text-xs font-medium text-white/40">{f.productName}</label>
               <input
-                value={productName}
-                onChange={(e) => setProductName(e.target.value)}
+                value={state.productName}
+                onChange={(e) => dispatch({ type: "SET_PRODUCT_NAME", value: e.target.value })}
                 className={inputClass}
                 placeholder={f.productNamePlaceholder}
               />
             </div>
             <div>
-              <label className="mb-2 block text-xs font-medium text-white/40">
-                {f.productCategory}
-              </label>
+              <label className="mb-2 block text-xs font-medium text-white/40">{f.productCategory}</label>
               <input
-                value={category}
-                onChange={(e) => setCategory(e.target.value)}
+                value={state.category}
+                onChange={(e) => dispatch({ type: "SET_CATEGORY", value: e.target.value })}
                 className={inputClass}
                 placeholder={f.productCategoryPlaceholder}
               />
@@ -263,12 +316,10 @@ export function MockupUploadForm({
           </div>
 
           <div className="mt-4">
-            <label className="mb-2 block text-xs font-medium text-white/40">
-              {f.format}
-            </label>
+            <label className="mb-2 block text-xs font-medium text-white/40">{f.format}</label>
             <select
-              value={format}
-              onChange={(e) => setFormat(e.target.value)}
+              value={state.format}
+              onChange={(e) => dispatch({ type: "SET_FORMAT", value: e.target.value })}
               className={selectClass}
               style={{ colorScheme: "dark" }}
             >
@@ -287,7 +338,7 @@ export function MockupUploadForm({
             <div className="flex items-center gap-2">
               <button
                 type="button"
-                onClick={enableBatchAll}
+                onClick={() => dispatch({ type: "ENABLE_BATCH_ALL" })}
                 className="rounded-full border border-[#05DF72]/30 bg-[#05DF72]/[0.07] px-3 py-1 text-xs font-medium text-[#05DF72] transition hover:bg-[#05DF72]/[0.12]"
                 title="Generate all 3 variants in parallel"
               >
@@ -295,19 +346,19 @@ export function MockupUploadForm({
               </button>
               <button
                 type="button"
-                onClick={() => setCompareMode((v) => !v)}
+                onClick={() => dispatch({ type: "TOGGLE_COMPARE_MODE" })}
                 className={`rounded-full border px-3 py-1 text-xs font-medium transition ${
-                  compareMode
+                  state.compareMode
                     ? "border-[#05DF72]/40 bg-[#05DF72]/10 text-[#05DF72]"
                     : "border-white/[0.08] bg-white/[0.03] text-white/35 hover:border-white/[0.15] hover:text-white/60"
                 }`}
               >
-                {compareMode ? f.comparingVariants : f.compareVariants}
+                {state.compareMode ? f.comparingVariants : f.compareVariants}
               </button>
             </div>
           </div>
 
-          {compareMode ? (
+          {state.compareMode ? (
             <div className="space-y-3">
               <p className="text-xs text-white/25">{f.compareHint}</p>
               <div className="grid gap-2 sm:grid-cols-2">
@@ -315,9 +366,9 @@ export function MockupUploadForm({
                   <button
                     key={v.id}
                     type="button"
-                    onClick={() => toggleCompareVariant(v.id)}
+                    onClick={() => dispatch({ type: "TOGGLE_COMPARE_VARIANT", variant: v.id })}
                     className={`rounded-xl border px-4 py-3.5 text-left text-sm transition ${
-                      compareVariants.has(v.id)
+                      state.compareVariants.has(v.id)
                         ? "border-[#05DF72]/40 bg-[#05DF72]/[0.06] text-white"
                         : "border-white/[0.07] bg-white/[0.02] text-white/35 hover:border-white/[0.12]"
                     }`}
@@ -327,7 +378,7 @@ export function MockupUploadForm({
                   </button>
                 ))}
               </div>
-              {compareVariants.size < 2 ? (
+              {state.compareVariants.size < 2 ? (
                 <p className="text-xs text-amber-400">{f.compareWarning}</p>
               ) : null}
             </div>
@@ -337,9 +388,9 @@ export function MockupUploadForm({
                 <button
                   key={v.id}
                   type="button"
-                  onClick={() => setVariant(v.id)}
+                  onClick={() => dispatch({ type: "SET_VARIANT", value: v.id })}
                   className={`rounded-xl border px-3 py-3 text-left text-sm transition ${
-                    variant === v.id
+                    state.variant === v.id
                       ? "border-[#05DF72] bg-[#05DF72]/10 text-[#34e58a]"
                       : "border-white/[0.07] bg-white/[0.02] text-white/35 hover:border-white/[0.12] hover:text-white/60"
                   }`}
@@ -353,34 +404,28 @@ export function MockupUploadForm({
         </div>
 
         {/* Variant D controls */}
-        {(variant === "d" || (compareMode && compareVariants.has("d"))) && (
+        {(state.variant === "d" || (state.compareMode && state.compareVariants.has("d"))) && (
           <div className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-6">
             <h3 className="mb-4 text-sm font-semibold text-white/60">{t.upload.customSettings}</h3>
             <div className="space-y-4">
               <div>
-                <label className="mb-2 block text-xs font-medium text-white/40">
-                  {f.customModel}
-                </label>
+                <label className="mb-2 block text-xs font-medium text-white/40">{f.customModel}</label>
                 <select
-                  value={customModel}
-                  onChange={(e) => setCustomModel(e.target.value)}
+                  value={state.customModel}
+                  onChange={(e) => dispatch({ type: "SET_CUSTOM_MODEL", value: e.target.value })}
                   className={selectClass}
                   style={{ colorScheme: "dark" }}
                 >
                   {CURATED_MODELS.map((m) => (
-                    <option key={m.id} value={m.id}>
-                      {m.label}
-                    </option>
+                    <option key={m.id} value={m.id}>{m.label}</option>
                   ))}
                 </select>
               </div>
               <div>
-                <label className="mb-2 block text-xs font-medium text-white/40">
-                  {f.customPrompt}
-                </label>
+                <label className="mb-2 block text-xs font-medium text-white/40">{f.customPrompt}</label>
                 <textarea
-                  value={customPrompt}
-                  onChange={(e) => setCustomPrompt(e.target.value)}
+                  value={state.customPrompt}
+                  onChange={(e) => dispatch({ type: "SET_CUSTOM_PROMPT", value: e.target.value })}
                   rows={3}
                   className={`${inputClass} resize-none`}
                   placeholder={String(f.customPromptPlaceholder)}
@@ -399,11 +444,11 @@ export function MockupUploadForm({
           <p className="mb-5 text-xs text-white/25">{t.upload.presetDescription}</p>
 
           <div className="space-y-2">
-            {PRESETS.filter((item) => variant === "d" || item.id !== "custom").map((item) => (
+            {PRESETS.filter((item) => state.variant === "d" || item.id !== "custom").map((item) => (
               <label
                 key={item.id}
                 className={`flex cursor-pointer items-start gap-3 rounded-xl border p-4 transition ${
-                  preset === item.id
+                  state.preset === item.id
                     ? "border-[#05DF72]/30 bg-[#05DF72]/[0.05]"
                     : "border-white/[0.07] bg-white/[0.01] hover:border-white/[0.12]"
                 }`}
@@ -412,14 +457,12 @@ export function MockupUploadForm({
                   type="radio"
                   name="preset"
                   value={item.id}
-                  checked={preset === item.id}
-                  onChange={() => setPreset(item.id)}
+                  checked={state.preset === item.id}
+                  onChange={() => dispatch({ type: "SET_PRESET", value: item.id })}
                   className="mt-0.5 accent-[#05DF72]"
                 />
                 <div>
-                  <div
-                    className={`font-semibold text-sm ${preset === item.id ? "text-[#34e58a]" : "text-white/75"}`}
-                  >
+                  <div className={`font-semibold text-sm ${state.preset === item.id ? "text-[#34e58a]" : "text-white/75"}`}>
                     {item.name}
                   </div>
                   <p className="mt-1 text-xs leading-5 text-white/30">{item.description}</p>
@@ -430,11 +473,11 @@ export function MockupUploadForm({
         </div>
 
         {/* Background controls */}
-        {preset !== "custom" && (
+        {state.preset !== "custom" && (
           <div className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-6">
             <button
               type="button"
-              onClick={() => setShowBgControls((v) => !v)}
+              onClick={() => dispatch({ type: "TOGGLE_BG_CONTROLS" })}
               className="flex w-full items-center justify-between text-sm font-semibold text-white/60 hover:text-white/80 transition"
             >
               <span>Background controls</span>
@@ -446,13 +489,13 @@ export function MockupUploadForm({
                 stroke="currentColor"
                 strokeWidth="1.6"
                 aria-hidden="true"
-                className={`transition-transform ${showBgControls ? "rotate-180" : ""}`}
+                className={`transition-transform ${state.showBgControls ? "rotate-180" : ""}`}
               >
                 <path d="M2 5l5 5 5-5" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
             </button>
 
-            {showBgControls && (
+            {state.showBgControls && (
               <div className="mt-5 space-y-4">
                 <div>
                   <label className="mb-2 block text-xs font-medium text-white/40">
@@ -460,8 +503,8 @@ export function MockupUploadForm({
                   </label>
                   <div className="flex gap-2">
                     <input
-                      value={bgColor}
-                      onChange={(e) => setBgColor(e.target.value)}
+                      value={state.bgColor}
+                      onChange={(e) => dispatch({ type: "SET_BG_COLOR", value: e.target.value })}
                       className={`${inputClass} flex-1`}
                       placeholder="e.g. sage green, warm beige, navy blue"
                     />
@@ -470,10 +513,10 @@ export function MockupUploadForm({
                         <button
                           key={c}
                           type="button"
-                          onClick={() => setBgColor(c)}
+                          onClick={() => dispatch({ type: "SET_BG_COLOR", value: c })}
                           title={c}
                           className={`h-9 w-9 rounded-lg border text-[10px] font-semibold capitalize transition ${
-                            bgColor === c
+                            state.bgColor === c
                               ? "border-[#05DF72]/50 ring-1 ring-[#05DF72]/30"
                               : "border-white/[0.08] hover:border-white/20"
                           }`}
@@ -496,8 +539,8 @@ export function MockupUploadForm({
                     Background texture
                   </label>
                   <select
-                    value={bgTexture}
-                    onChange={(e) => setBgTexture(e.target.value)}
+                    value={state.bgTexture}
+                    onChange={(e) => dispatch({ type: "SET_BG_TEXTURE", value: e.target.value })}
                     className={selectClass}
                     style={{ colorScheme: "dark" }}
                   >
@@ -511,10 +554,13 @@ export function MockupUploadForm({
                   </select>
                 </div>
 
-                {(bgColor || bgTexture) && (
+                {(state.bgColor || state.bgTexture) && (
                   <button
                     type="button"
-                    onClick={() => { setBgColor(""); setBgTexture(""); }}
+                    onClick={() => {
+                      dispatch({ type: "SET_BG_COLOR", value: "" });
+                      dispatch({ type: "SET_BG_TEXTURE", value: "" });
+                    }}
                     className="text-xs text-white/25 hover:text-white/50 transition"
                   >
                     Clear controls
@@ -538,14 +584,14 @@ export function MockupUploadForm({
           </div>
         ) : null}
 
-        {error ? (
+        {state.error ? (
           <div className="rounded-xl border border-red-500/20 bg-red-500/[0.06] p-4">
             <div className="flex items-start gap-2.5">
               <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="mt-0.5 shrink-0 text-red-400" aria-hidden="true">
                 <circle cx="8" cy="8" r="6.5" stroke="currentColor" strokeWidth="1.2"/>
                 <path d="M8 5v3.5M8 10.5v.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
               </svg>
-              <p className="text-sm text-red-300">{error}</p>
+              <p className="text-sm text-red-300">{state.error}</p>
             </div>
           </div>
         ) : null}
@@ -557,7 +603,7 @@ export function MockupUploadForm({
           disabled={!canSubmit}
           className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-[#05DF72] px-5 py-4 text-sm font-bold text-black transition hover:bg-[#34e58a] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40"
         >
-          {isSubmitting || isUploadingFile ? (
+          {state.isSubmitting || state.isUploadingFile ? (
             <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none" aria-hidden="true">
               <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" className="opacity-25"/>
               <path d="M12 2a10 10 0 0110 10" stroke="currentColor" strokeWidth="3" strokeLinecap="round" className="opacity-75"/>

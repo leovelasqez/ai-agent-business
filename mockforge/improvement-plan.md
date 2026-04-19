@@ -81,10 +81,10 @@ Plan priorizado para ejecutar a lo largo de varias sesiones. Cada item incluye a
 - Falta `AbortController`: cambiar params durante fetch deja peticiones huérfanas
 - Type casting inseguro: `json.data as unknown` sin narrowing (línea 367)
 
-### [~] 12. Refactor `mockup-upload-form.tsx` — PARCIAL
+### [x] 12. Refactor `mockup-upload-form.tsx`
 **Archivo:** `src/components/mockup-upload-form.tsx`
 - Hecho: deduplicación de variants/format helpers, memoización de `VARIANTS`, auto-clear de errores
-- **Pendiente:** el componente sigue con **18 `useState`** (571 líneas). Migrar a `useReducer` o context para reducir re-renders y facilitar testing.
+- Hecho: migrado de 17 `useState` a `useReducer`. Reducer puro (`FormState` + `FormAction`). Estado inicializado via `makeInitialState(props)`. Todos los efectos secundarios (upload, submit) despachan acciones atómicas. Re-renders reducidos: un solo `dispatch` reemplaza múltiples setters en cascada.
 
 ### [x] 13. Error handling consistente
 - `friendlyError()` duplicado entre cliente (`results-view.tsx`) y `src/app/api/generate/route.ts:80`
@@ -249,6 +249,6 @@ Items marcados `[x]` durante las fases previas pero que en código siguen siendo
 
 ### Media prioridad
 - [x] **#29 Distribución multi-región** — latency stats persistidas en Supabase; región propagada a fal.ai via `x-fal-runner-type`; `/api/region/stats` endpoint. Workers multi-instancia pueden filtrar `generation_jobs` por región.
-- [~] **#12 Refactor form** — migrar `mockup-upload-form.tsx` (18 `useState`, 571 líneas) a `useReducer`.
+- [x] **#12 Refactor form** — 17 `useState` → `useReducer` con `FormState`/`FormAction`. Reducer puro, estado inicializado desde props, re-renders reducidos.
 
 A medida que cada item quede cerrado, cambiar `[~]` → `[x]` tanto en la sección original como aquí, y añadir una línea en el commit: `closes improvement-plan #<n>`.
