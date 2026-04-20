@@ -1,7 +1,7 @@
 "use client";
 
 import { useLanguage } from "@/lib/language-context";
-import { getPresetById } from "@/lib/presets";
+import { getLocalizedPresetById } from "@/lib/presets";
 
 interface ResultsSummaryProps {
   preset: string;
@@ -16,9 +16,9 @@ export function ResultsSummary({
   format,
   productName,
 }: ResultsSummaryProps) {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const s = t.resultsSummary;
-  const presetData = getPresetById(preset);
+  const presetData = getLocalizedPresetById(preset, language);
 
   const items = [
     { label: s.preset, value: presetData?.name ?? preset },

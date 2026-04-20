@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useLanguage } from "@/lib/language-context";
-import { getPresetById } from "@/lib/presets";
+import { getLocalizedPresetById } from "@/lib/presets";
 import { VARIANT_LABELS } from "@/lib/model-config";
 import type { MockupGeneration } from "@/lib/types";
 
@@ -87,7 +87,7 @@ export function HistoryList({ generations, page = 1, hasMore = false }: HistoryL
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {generations.map((gen) => {
-            const preset = getPresetById(gen.preset);
+            const preset = getLocalizedPresetById(gen.preset, language);
             const thumbnail = gen.previewUrls[0];
             const variantColor =
               VARIANT_COLORS[gen.variant] ?? "bg-white/10 text-white/40";

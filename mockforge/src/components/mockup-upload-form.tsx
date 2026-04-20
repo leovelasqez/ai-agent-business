@@ -4,7 +4,7 @@ import Image from "next/image";
 import { useCallback, useEffect, useMemo, useReducer } from "react";
 import { useRouter } from "next/navigation";
 import { FilePicker } from "@/components/file-picker";
-import { PRESETS, type PresetId } from "@/lib/presets";
+import { getLocalizedPresets, type PresetId } from "@/lib/presets";
 import { CURATED_MODELS } from "@/lib/model-config";
 import { useLanguage } from "@/lib/language-context";
 import { track } from "@/lib/analytics";
@@ -132,8 +132,9 @@ function makeInitialState(props: MockupUploadFormProps): FormState {
 export function MockupUploadForm(props: MockupUploadFormProps) {
   const { initialSourceImageUrl } = props;
   const router = useRouter();
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const f = t.form;
+  const localizedPresets = getLocalizedPresets(language);
 
   const [state, dispatch] = useReducer(reducer, props, makeInitialState);
 
@@ -444,7 +445,7 @@ export function MockupUploadForm(props: MockupUploadFormProps) {
           <p className="mb-5 text-xs text-white/25">{t.upload.presetDescription}</p>
 
           <div className="space-y-2">
-            {PRESETS.filter((item) => state.variant === "d" || item.id !== "custom").map((item) => (
+            {localizedPresets.filter((item) => state.variant === "d" || item.id !== "custom").map((item) => (
               <label
                 key={item.id}
                 className={`flex cursor-pointer items-start gap-3 rounded-xl border p-4 transition ${

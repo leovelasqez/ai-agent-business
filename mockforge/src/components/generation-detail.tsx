@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useLanguage } from "@/lib/language-context";
 import { RatingButtons } from "@/components/rating-buttons";
-import { getPresetById } from "@/lib/presets";
+import { getLocalizedPresetById } from "@/lib/presets";
 import { VARIANT_LABELS } from "@/lib/model-config";
 import type { MockupGeneration } from "@/lib/types";
 
@@ -52,7 +52,7 @@ interface GenerationDetailProps {
 export function GenerationDetail({ generation }: GenerationDetailProps) {
   const { t, language } = useLanguage();
   const h = t.historyDetail;
-  const preset = getPresetById(generation.preset);
+  const preset = getLocalizedPresetById(generation.preset, language);
 
   return (
     <div className="flex flex-col gap-8">
