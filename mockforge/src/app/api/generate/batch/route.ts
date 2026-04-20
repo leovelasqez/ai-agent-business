@@ -1,8 +1,12 @@
-import { checkRateLimit, getClientIp } from "@/lib/rate-limiter";
+import { checkRateLimit } from "@/lib/rate-limiter";
 import { mapProviderError } from "@/lib/errors";
 import { getRequestId, jsonWithRequestId, log } from "@/lib/logger";
 import { runGeneration } from "@/lib/image-provider";
 import { insertGeneration } from "@/lib/db/generations";
+import { isBudgetExceeded, recordGenerationCost } from "@/lib/cost-control";
+import { maybeGrantFreeTrial, deductCreditsAmount, CREDIT_COST } from "@/lib/credits";
+import { getTrustedSessionIdFromRequest } from "@/lib/session";
+import { getServerUser } from "@/lib/supabase-server";
 import type { PresetId } from "@/lib/presets";
 import type { GenerationVariant } from "@/lib/image-provider";
 
@@ -10,8 +14,15 @@ const BATCH_VARIANTS: GenerationVariant[] = ["a", "b", "c"];
 
 export async function POST(request: Request) {
   const requestId = getRequestId(request);
-  const sessionId =
-    request.headers.get("cookie")?.match(/mf_session=([^;]+)/)?.[1] ?? getClientIp(request);
+  const authedUser = await getServerUser();
+  const sessionId = authedUser?.id ?? getTrustedSessionIdFromRequest(request);
+  if (!sessionId) {
+    return jsonWithRequestId(
+      { ok: false, error: "SESSION_REQUIRED", message: "A trusted session is required." },
+      requestId,
+      { status: 401 },
+    );
+  }
 
   // Batch counts as 3 generations — use a tighter limit (2 batches / 60 s)
   const rl = checkRateLimit(`generate-batch:${sessionId}`, 2, 60_000);
@@ -48,6 +59,15 @@ export async function POST(request: Request) {
     );
   }
 
+  const budget = isBudgetExceeded();
+  if (budget.exceeded) {
+    return jsonWithRequestId(
+      { ok: false, error: "BUDGET_EXCEEDED", message: budget.reason },
+      requestId,
+      { status: 503 },
+    );
+  }
+
   if (!process.env.FAL_KEY) {
     return jsonWithRequestId(
       { ok: false, error: "FAL_KEY is missing", message: "Add FAL_KEY to run live generations." },
@@ -62,6 +82,22 @@ export async function POST(request: Request) {
     method: "POST",
     extra: { preset, variants, sourceImageUrl },
   });
+
+  await maybeGrantFreeTrial(sessionId);
+  const totalCost = variants.reduce((sum, variant) => sum + (CREDIT_COST[variant] ?? 1), 0);
+  const { ok: hasCredits, balance } = await deductCreditsAmount(sessionId, totalCost);
+  if (!hasCredits) {
+    return jsonWithRequestId(
+      {
+        ok: false,
+        error: "INSUFFICIENT_CREDITS",
+        message: "You have no credits left. Purchase a pack to continue generating.",
+        data: { balance, cost: totalCost },
+      },
+      requestId,
+      { status: 402 },
+    );
+  }
 
   const results = await Promise.allSettled(
     variants.map(async (variant) => {
@@ -138,6 +174,10 @@ export async function POST(request: Request) {
     );
   }
 
+  succeeded.forEach((result) => {
+    recordGenerationCost((result as { variant: string }).variant);
+  });
+
   return jsonWithRequestId(
     {
       ok: true,
@@ -146,7 +186,7 @@ export async function POST(request: Request) {
         results: succeeded,
         failed,
         isBatch: true,
-        pricing: { type: "batch", discount: "20%" },
+        pricing: { type: "batch", cost: totalCost },
       },
     },
     requestId,

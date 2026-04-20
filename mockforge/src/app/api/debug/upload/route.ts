@@ -1,10 +1,24 @@
 import { NextResponse } from "next/server";
-import { saveUploadToLocal } from "@/lib/file-storage";
+import { saveInputUpload } from "@/lib/storage-provider";
 import { runGeneration } from "@/lib/image-provider";
 import type { PresetId } from "@/lib/presets";
+import { validateUploadedImage } from "@/lib/upload-validation";
 
 export async function POST(request: Request) {
+  const debugSecret = process.env.DEBUG_UPLOAD_SECRET;
+  if (process.env.NODE_ENV === "production" || debugSecret) {
+    const provided = request.headers.get("x-debug-upload-secret") ?? "";
+    if (!debugSecret || provided !== debugSecret) {
+      return NextResponse.json({ ok: false, error: "UNAUTHORIZED" }, { status: 401 });
+    }
+  }
+
   try {
+    const contentLength = Number(request.headers.get("content-length") ?? "0");
+    if (contentLength > 12 * 1024 * 1024) {
+      return NextResponse.json({ ok: false, error: "FILE_TOO_LARGE", message: "Payload too large" }, { status: 413 });
+    }
+
     const formData = await request.formData();
     const file = formData.get("file");
 
@@ -12,7 +26,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: false, error: "FILE_MISSING", message: "No file uploaded" }, { status: 400 });
     }
 
-    const saved = await saveUploadToLocal(file);
+    const buffer = await validateUploadedImage(file);
+    const saved = await saveInputUpload(new File([Buffer.from(buffer)], file.name, { type: file.type }));
     const preset = (String(formData.get("preset") || "clean_studio")) as PresetId;
     const category = String(formData.get("category") || "unspecified");
     const format = String(formData.get("format") || "1:1 square");

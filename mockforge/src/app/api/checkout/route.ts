@@ -1,5 +1,7 @@
 import Stripe from "stripe";
 import { NextResponse } from "next/server";
+import { getTrustedSessionIdFromRequest } from "@/lib/session";
+import { getServerUser } from "@/lib/supabase-server";
 
 const PACKAGES = {
   single: { envKey: "STRIPE_PRICE_SINGLE_PACK", label: "MockForge · Single Pack" },
@@ -18,11 +20,18 @@ export async function POST(request: Request) {
   }
 
   const body = await request.json().catch(() => ({}));
-  const { generationId, package: pkg, sessionId } = body as {
+  const { generationId, package: pkg } = body as {
     generationId?: string;
     package?: string;
-    sessionId?: string;
   };
+  const authedUser = await getServerUser();
+  const trustedSessionId = authedUser?.id ?? getTrustedSessionIdFromRequest(request);
+  if (!trustedSessionId) {
+    return NextResponse.json(
+      { ok: false, error: "SESSION_REQUIRED", message: "A trusted session is required for checkout." },
+      { status: 401 },
+    );
+  }
 
   const packageKey: PackageKey = pkg === "bundle" ? "bundle" : "single";
   const priceId = process.env[PACKAGES[packageKey].envKey];
@@ -45,11 +54,11 @@ export async function POST(request: Request) {
       cancel_url: generationId
         ? `${appUrl}/results?generationId=${generationId}`
         : `${appUrl}/results`,
-      client_reference_id: sessionId ?? undefined,
+      client_reference_id: trustedSessionId,
       metadata: {
         generationId: generationId ?? "",
         package: packageKey,
-        session_id: sessionId ?? "",
+        session_id: trustedSessionId,
       },
     });
 

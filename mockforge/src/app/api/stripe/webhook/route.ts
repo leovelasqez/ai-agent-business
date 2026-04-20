@@ -26,10 +26,14 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: message }, { status: 400 });
   }
 
-  if (event.type === "checkout.session.completed") {
+  if (
+    event.type === "checkout.session.completed" ||
+    event.type === "checkout.session.async_payment_succeeded"
+  ) {
     const session = event.data.object as Stripe.Checkout.Session;
     const { generationId, package: pkg } = session.metadata ?? {};
     const clientSessionId = session.client_reference_id ?? session.metadata?.session_id ?? "";
+    const paymentStatus = session.payment_status;
 
     console.log("[stripe/webhook] checkout.session.completed", {
       sessionId: session.id,
@@ -39,7 +43,7 @@ export async function POST(request: Request) {
       currency: session.currency,
     });
 
-    if (clientSessionId) {
+    if (paymentStatus === "paid" && clientSessionId) {
       const tier = pkg === "bundle" ? "purchase_bundle" : "purchase_single";
       await grantCredits(clientSessionId, tier, session.id);
     }

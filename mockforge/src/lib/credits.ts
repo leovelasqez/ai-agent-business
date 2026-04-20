@@ -32,6 +32,7 @@ export const CREDIT_COST: Record<string, number> = {
   c: 2,
   d: 1,
   video: 3,
+  upscale: 1,
 };
 
 // ---------- In-memory fallback (no DB) ----------
@@ -85,46 +86,79 @@ async function dbGetBalance(sessionId: string): Promise<number> {
   return data?.balance ?? 0;
 }
 
-async function dbDeduct(sessionId: string, amount: number, generationId?: string): Promise<boolean> {
+async function dbDeduct(
+  sessionId: string,
+  amount: number,
+  generationId?: string,
+): Promise<{ ok: boolean; balance: number }> {
   const sb = getSupabaseServiceClient();
 
-  const account = await dbGetOrCreateAccount(sessionId);
-  if (!account || account.balance < amount) return false;
-
-  const { error } = await sb
-    .from("credit_accounts")
-    .update({ balance: account.balance - amount })
-    .eq("session_id", sessionId);
-
-  if (error) return false;
-
-  await sb.from("credit_transactions").insert({
-    session_id: sessionId,
-    amount: -amount,
-    reason: "generation",
-    generation_id: generationId ?? null,
+  const { data, error } = await sb.rpc("deduct_credits_atomic", {
+    p_session_id: sessionId,
+    p_amount: amount,
+    p_generation_id: generationId ?? null,
   });
 
-  return true;
+  if (error) {
+    throw new Error(`deduct_credits_atomic failed: ${error.message}`);
+  }
+
+  const row = Array.isArray(data) ? data[0] : data;
+  return {
+    ok: Boolean(row?.ok),
+    balance: Number(row?.balance ?? 0),
+  };
 }
 
-async function dbCredit(sessionId: string, amount: number, reason: string, stripeSession?: string) {
+async function dbCredit(
+  sessionId: string,
+  amount: number,
+  reason: string,
+  stripeSession?: string,
+): Promise<{ balance: number; applied: boolean }> {
   const sb = getSupabaseServiceClient();
 
-  const account = await dbGetOrCreateAccount(sessionId);
-  if (!account) return;
+  if (!stripeSession) {
+    const account = await dbGetOrCreateAccount(sessionId);
+    if (!account) {
+      return { balance: 0, applied: false };
+    }
 
-  await sb
-    .from("credit_accounts")
-    .update({ balance: account.balance + amount })
-    .eq("session_id", sessionId);
+    const { error } = await sb
+      .from("credit_accounts")
+      .update({ balance: account.balance + amount })
+      .eq("session_id", sessionId);
 
-  await sb.from("credit_transactions").insert({
-    session_id: sessionId,
-    amount,
-    reason,
-    stripe_session: stripeSession ?? null,
+    if (error) {
+      throw new Error(`dbCredit update failed: ${error.message}`);
+    }
+
+    await sb.from("credit_transactions").insert({
+      session_id: sessionId,
+      amount,
+      reason,
+      stripe_session: null,
+    });
+
+    return { balance: await dbGetBalance(sessionId), applied: true };
+  }
+
+  const { data, error } = await sb.rpc("grant_credits_once", {
+    p_session_id: sessionId,
+    p_amount: amount,
+    p_reason: reason,
+    p_stripe_session: stripeSession,
   });
+
+  if (error) {
+    throw new Error(`grant_credits_once failed: ${error.message}`);
+  }
+
+  const row = Array.isArray(data) ? data[0] : data;
+  return {
+    balance: Number(row?.balance ?? 0),
+    applied: Boolean(row?.applied),
+  };
 }
 
 // ---------- Public API ----------
@@ -146,17 +180,22 @@ export async function deductCredits(
   variant: string,
   generationId?: string,
 ): Promise<{ ok: boolean; balance: number; cost: number }> {
-  const cost = CREDIT_COST[variant] ?? 1;
+  return deductCreditsAmount(sessionId, CREDIT_COST[variant] ?? 1, generationId);
+}
 
+export async function deductCreditsAmount(
+  sessionId: string,
+  cost: number,
+  generationId?: string,
+): Promise<{ ok: boolean; balance: number; cost: number }> {
   if (!isSupabaseConfigured()) {
     const ok = memDeduct(sessionId, cost);
     return { ok, balance: memGetBalance(sessionId), cost };
   }
 
   try {
-    const ok = await dbDeduct(sessionId, cost, generationId);
-    const balance = await dbGetBalance(sessionId);
-    return { ok, balance, cost };
+    const result = await dbDeduct(sessionId, cost, generationId);
+    return { ok: result.ok, balance: result.balance, cost };
   } catch {
     const ok = memDeduct(sessionId, cost);
     return { ok, balance: memGetBalance(sessionId), cost };
@@ -179,8 +218,8 @@ export async function grantCredits(
   }
 
   try {
-    await dbCredit(sessionId, amount, tier, stripeSession);
-    return await dbGetBalance(sessionId);
+    const result = await dbCredit(sessionId, amount, tier, stripeSession);
+    return result.balance;
   } catch {
     memCredit(sessionId, amount);
     return memGetBalance(sessionId);

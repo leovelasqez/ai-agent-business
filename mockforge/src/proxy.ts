@@ -1,7 +1,13 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextRequest, NextResponse } from "next/server";
+import {
+  SESSION_COOKIE,
+  createAnonymousSession,
+  createSignedSessionValue,
+  getSessionCookieOptions,
+  verifySignedSessionValue,
+} from "@/lib/session";
 
-const SESSION_COOKIE = "mf_session";
 const LANG_COOKIE = "mf_lang";
 const SUPPORTED_LANGS = ["en", "es", "fr", "pt", "de"] as const;
 type SupportedLang = (typeof SUPPORTED_LANGS)[number];
@@ -48,14 +54,16 @@ export async function proxy(request: NextRequest) {
   }
 
   // --- Anonymous session cookie (mf_session) ---
-  if (!request.cookies.has(SESSION_COOKIE)) {
-    supabaseResponse.cookies.set(SESSION_COOKIE, crypto.randomUUID(), {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      maxAge: ONE_YEAR_SECONDS,
-      path: "/",
-    });
+  const rawSessionCookie = request.cookies.get(SESSION_COOKIE)?.value;
+  const trustedSessionId = verifySignedSessionValue(rawSessionCookie);
+  if (!trustedSessionId) {
+    const nextSession =
+      rawSessionCookie && /^[a-z0-9-]{16,128}$/i.test(rawSessionCookie)
+        ? { sessionId: rawSessionCookie, cookieValue: createSignedSessionValue(rawSessionCookie) }
+        : createAnonymousSession();
+
+    request.cookies.set(SESSION_COOKIE, nextSession.cookieValue);
+    supabaseResponse.cookies.set(SESSION_COOKIE, nextSession.cookieValue, getSessionCookieOptions());
   }
 
   // --- Language cookie (mf_lang) ---

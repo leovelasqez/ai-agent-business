@@ -40,6 +40,8 @@ interface GenerationRow {
   created_at: string;
   rating: number | null;
   kind: OutputKind | null;
+  is_public: boolean | null;
+  session_id: string | null;
 }
 
 function mapGenerationRow(row: GenerationRow): MockupGeneration & {
@@ -122,7 +124,7 @@ export async function getRecentGenerations(
     const { data, error } = await supabase
       .from("generations")
       .select(
-        "id, preset, category, format, product_name, variant, model, prompt, source_image_url, preview_urls, provider, status, created_at, rating, kind",
+        "id, preset, category, format, product_name, variant, model, prompt, source_image_url, preview_urls, provider, status, created_at, rating, kind, is_public, session_id",
       )
       .is("deleted_at", null)
       .order("created_at", { ascending: false })
@@ -152,7 +154,7 @@ export async function getGenerationById(id: string): Promise<(MockupGeneration &
     const { data, error } = await supabase
       .from("generations")
       .select(
-        "id, preset, category, format, product_name, variant, model, prompt, source_image_url, preview_urls, provider, status, created_at, rating, kind",
+        "id, preset, category, format, product_name, variant, model, prompt, source_image_url, preview_urls, provider, status, created_at, rating, kind, is_public, session_id",
       )
       .eq("id", id)
       .is("deleted_at", null)
@@ -168,6 +170,109 @@ export async function getGenerationById(id: string): Promise<(MockupGeneration &
   } catch (err) {
     console.error("[db] getGenerationById unexpected error:", err instanceof Error ? err.message : err);
     return null;
+  }
+}
+
+export async function getRecentGenerationsForOwner(
+  ownerSessionId: string,
+  limit = 24,
+  offset = 0,
+): Promise<(MockupGeneration & { model: string; variant: string })[]> {
+  if (!isSupabaseConfigured() || !ownerSessionId) return [];
+
+  try {
+    const supabase = getSupabaseServiceClient();
+    const { data, error } = await supabase
+      .from("generations")
+      .select(
+        "id, preset, category, format, product_name, variant, model, prompt, source_image_url, preview_urls, provider, status, created_at, rating, kind, is_public, session_id",
+      )
+      .eq("session_id", ownerSessionId)
+      .is("deleted_at", null)
+      .order("created_at", { ascending: false })
+      .range(offset, offset + limit - 1);
+
+    if (error) {
+      console.error("[db] getRecentGenerationsForOwner failed:", error.message);
+      return [];
+    }
+
+    return (data as GenerationRow[]).map(mapGenerationRow);
+  } catch (err) {
+    console.error(
+      "[db] getRecentGenerationsForOwner unexpected error:",
+      err instanceof Error ? err.message : err,
+    );
+    return [];
+  }
+}
+
+export async function getGenerationByIdForViewer(
+  id: string,
+  viewerSessionId?: string | null,
+): Promise<(MockupGeneration & { model: string; variant: string }) | null> {
+  if (!isSupabaseConfigured()) return null;
+
+  try {
+    const supabase = getSupabaseServiceClient();
+    const { data, error } = await supabase
+      .from("generations")
+      .select(
+        "id, preset, category, format, product_name, variant, model, prompt, source_image_url, preview_urls, provider, status, created_at, rating, kind, is_public, session_id",
+      )
+      .eq("id", id)
+      .is("deleted_at", null)
+      .maybeSingle();
+
+    if (error || !data) {
+      if (error) console.error("[db] getGenerationByIdForViewer failed:", error.message);
+      return null;
+    }
+
+    const row = data as GenerationRow;
+    if (!row.is_public && (!viewerSessionId || row.session_id !== viewerSessionId)) {
+      return null;
+    }
+
+    return mapGenerationRow(row);
+  } catch (err) {
+    console.error(
+      "[db] getGenerationByIdForViewer unexpected error:",
+      err instanceof Error ? err.message : err,
+    );
+    return null;
+  }
+}
+
+export async function updateGenerationVisibilityForOwner(
+  generationId: string,
+  isPublic: boolean,
+  ownerSessionId: string,
+): Promise<boolean> {
+  if (!isSupabaseConfigured() || !ownerSessionId) return false;
+
+  try {
+    const supabase = getSupabaseServiceClient();
+    const { data, error } = await supabase
+      .from("generations")
+      .update({ is_public: isPublic })
+      .eq("id", generationId)
+      .eq("session_id", ownerSessionId)
+      .select("id")
+      .maybeSingle();
+
+    if (error) {
+      console.error("[db] updateGenerationVisibilityForOwner failed:", error.message);
+      return false;
+    }
+
+    return Boolean(data);
+  } catch (err) {
+    console.error(
+      "[db] updateGenerationVisibilityForOwner unexpected error:",
+      err instanceof Error ? err.message : err,
+    );
+    return false;
   }
 }
 

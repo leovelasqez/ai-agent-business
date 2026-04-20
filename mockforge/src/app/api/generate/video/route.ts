@@ -1,9 +1,13 @@
 import { fal } from "@fal-ai/client";
-import { checkRateLimit, getClientIp } from "@/lib/rate-limiter";
+import { checkRateLimit } from "@/lib/rate-limiter";
 import { mapProviderError } from "@/lib/errors";
 import { getRequestId, jsonWithRequestId, log } from "@/lib/logger";
 import { insertGeneration } from "@/lib/db/generations";
 import { downloadAndSaveOutput } from "@/lib/storage-provider";
+import { isBudgetExceeded, recordGenerationCost } from "@/lib/cost-control";
+import { maybeGrantFreeTrial, deductCredits, CREDIT_COST } from "@/lib/credits";
+import { validateSourceImageUrl } from "@/lib/image-provider";
+import { getTrustedSessionIdFromRequest } from "@/lib/session";
 
 const KLING_MODEL = "fal-ai/kling-video/v2/master/image-to-video";
 
@@ -18,8 +22,14 @@ interface KlingVideoOutput {
 
 export async function POST(request: Request) {
   const requestId = getRequestId(request);
-  const sessionId =
-    request.headers.get("cookie")?.match(/mf_session=([^;]+)/)?.[1] ?? getClientIp(request);
+  const sessionId = getTrustedSessionIdFromRequest(request);
+  if (!sessionId) {
+    return jsonWithRequestId(
+      { ok: false, error: "SESSION_REQUIRED", message: "A trusted session is required." },
+      requestId,
+      { status: 401 },
+    );
+  }
 
   // Video generation is expensive — limit to 1 per 60 s per session
   const rl = checkRateLimit(`generate-video:${sessionId}`, 1, 60_000);
@@ -59,6 +69,40 @@ export async function POST(request: Request) {
     );
   }
 
+  try {
+    validateSourceImageUrl(imageUrl);
+  } catch (error) {
+    return jsonWithRequestId(
+      { ok: false, error: "INVALID_IMAGE_URL", message: error instanceof Error ? error.message : "Invalid image URL" },
+      requestId,
+      { status: 400 },
+    );
+  }
+
+  const budget = isBudgetExceeded();
+  if (budget.exceeded) {
+    return jsonWithRequestId(
+      { ok: false, error: "BUDGET_EXCEEDED", message: budget.reason },
+      requestId,
+      { status: 503 },
+    );
+  }
+
+  await maybeGrantFreeTrial(sessionId);
+  const { ok: hasCredits, balance } = await deductCredits(sessionId, "video");
+  if (!hasCredits) {
+    return jsonWithRequestId(
+      {
+        ok: false,
+        error: "INSUFFICIENT_CREDITS",
+        message: "No credits left.",
+        data: { balance, cost: CREDIT_COST.video },
+      },
+      requestId,
+      { status: 402 },
+    );
+  }
+
   fal.config({ credentials: falKey });
 
   log("info", "video generation request accepted", {
@@ -86,6 +130,7 @@ export async function POST(request: Request) {
     }
 
     const saved = await downloadAndSaveOutput(videoUrl, `video-${Date.now()}`);
+    recordGenerationCost("video");
 
     const generationId =
       (await insertGeneration({

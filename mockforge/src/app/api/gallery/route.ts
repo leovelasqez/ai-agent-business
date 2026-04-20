@@ -1,5 +1,8 @@
 import { NextResponse } from "next/server";
 import { getSupabaseReadClient, isSupabaseConfigured } from "@/lib/supabase";
+import { updateGenerationVisibilityForOwner } from "@/lib/db/generations";
+import { getTrustedSessionIdFromRequest } from "@/lib/session";
+import { getServerUser } from "@/lib/supabase-server";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -41,6 +44,12 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ ok: true });
   }
 
+  const authedUser = await getServerUser();
+  const viewerSessionId = authedUser?.id ?? getTrustedSessionIdFromRequest(request);
+  if (!viewerSessionId) {
+    return NextResponse.json({ ok: false, error: "UNAUTHORIZED" }, { status: 401 });
+  }
+
   const body = await request.json().catch(() => ({}));
   const { generationId, isPublic } = body as { generationId?: string; isPublic?: boolean };
 
@@ -48,14 +57,9 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ ok: false, message: "generationId and isPublic required" }, { status: 400 });
   }
 
-  const sb = getSupabaseReadClient();
-  const { error } = await sb
-    .from("generations")
-    .update({ is_public: isPublic })
-    .eq("id", generationId);
-
-  if (error) {
-    return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
+  const updated = await updateGenerationVisibilityForOwner(generationId, isPublic, viewerSessionId);
+  if (!updated) {
+    return NextResponse.json({ ok: false, error: "NOT_FOUND_OR_FORBIDDEN" }, { status: 404 });
   }
 
   return NextResponse.json({ ok: true });

@@ -1,4 +1,4 @@
-import { checkRateLimit, getClientIp } from "@/lib/rate-limiter";
+import { checkRateLimit } from "@/lib/rate-limiter";
 import { mapProviderError } from "@/lib/errors";
 import { enqueueGenerationJob, type GenerationJobInput } from "@/lib/job-queue";
 import { getRequestId, jsonWithRequestId, log } from "@/lib/logger";
@@ -7,6 +7,7 @@ import { insertGeneration } from "@/lib/db/generations";
 import { detectRegion, resolveEffectiveRegion, recordGenerationLatency } from "@/lib/region";
 import { isBudgetExceeded, recordGenerationCost } from "@/lib/cost-control";
 import { maybeGrantFreeTrial, deductCredits, CREDIT_COST } from "@/lib/credits";
+import { getTrustedSessionIdFromRequest } from "@/lib/session";
 import { getServerUser } from "@/lib/supabase-server";
 import { withSpan, getTraceId } from "@/lib/tracing";
 import type { PresetId } from "@/lib/presets";
@@ -15,10 +16,14 @@ export async function POST(request: Request) {
   const requestId = getRequestId(request);
   // Prefer authenticated user ID (Supabase) over anonymous cookie session.
   const authedUser = await getServerUser();
-  const sessionId =
-    authedUser?.id ??
-    request.headers.get("cookie")?.match(/mf_session=([^;]+)/)?.[1] ??
-    getClientIp(request);
+  const sessionId = authedUser?.id ?? getTrustedSessionIdFromRequest(request);
+  if (!sessionId) {
+    return jsonWithRequestId(
+      { ok: false, error: "SESSION_REQUIRED", message: "A trusted session is required." },
+      requestId,
+      { status: 401 },
+    );
+  }
   const rl = checkRateLimit(`generate:${sessionId}`, 5, 60_000);
   if (!rl.allowed) {
     return jsonWithRequestId(

@@ -1,7 +1,10 @@
 import { notFound } from "next/navigation";
+import { cookies } from "next/headers";
 import { SiteHeader } from "@/components/site-header";
 import { GenerationDetail } from "@/components/generation-detail";
-import { getGenerationById } from "@/lib/db/generations";
+import { getGenerationByIdForViewer } from "@/lib/db/generations";
+import { getTrustedSessionIdFromCookies } from "@/lib/session";
+import { getServerUser } from "@/lib/supabase-server";
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -9,7 +12,10 @@ interface Props {
 
 export default async function GenerationDetailPage({ params }: Props) {
   const { id } = await params;
-  const generation = await getGenerationById(id);
+  const authedUser = await getServerUser();
+  const cookieStore = await cookies();
+  const viewerSessionId = authedUser?.id ?? getTrustedSessionIdFromCookies(cookieStore);
+  const generation = await getGenerationByIdForViewer(id, viewerSessionId);
 
   if (!generation) notFound();
 

@@ -33,7 +33,7 @@ export interface RunGenerationResult {
 // Safe filename: no path separators, no dots leading a segment
 const SAFE_UPLOAD_FILENAME = /^[a-zA-Z0-9][\w.-]*$/;
 
-function validateSourceImageUrl(url: string): void {
+export function validateSourceImageUrl(url: string): void {
   // Local upload path
   if (url.startsWith("/api/uploads/")) {
     const fileName = url.slice("/api/uploads/".length);

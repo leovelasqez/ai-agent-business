@@ -1,7 +1,11 @@
 import { NextResponse } from "next/server";
 import { fal } from "@fal-ai/client";
-import { checkRateLimit, getClientIp } from "@/lib/rate-limiter";
+import { checkRateLimit } from "@/lib/rate-limiter";
 import { downloadAndSaveOutput } from "@/lib/storage-provider";
+import { isBudgetExceeded, recordGenerationCost } from "@/lib/cost-control";
+import { maybeGrantFreeTrial, deductCredits, CREDIT_COST } from "@/lib/credits";
+import { validateSourceImageUrl } from "@/lib/image-provider";
+import { getTrustedSessionIdFromRequest } from "@/lib/session";
 
 function getFalKey() {
   const key = process.env.FAL_KEY;
@@ -10,8 +14,14 @@ function getFalKey() {
 }
 
 export async function POST(request: Request) {
-  const ip = getClientIp(request);
-  const rl = checkRateLimit(`upscale:${ip}`, 5, 60_000);
+  const sessionId = getTrustedSessionIdFromRequest(request);
+  if (!sessionId) {
+    return NextResponse.json(
+      { ok: false, error: "SESSION_REQUIRED", message: "A trusted session is required." },
+      { status: 401 },
+    );
+  }
+  const rl = checkRateLimit(`upscale:${sessionId}`, 5, 60_000);
   if (!rl.allowed) {
     return NextResponse.json(
       { ok: false, error: "RATE_LIMITED", message: "Too many upscale requests." },
@@ -24,6 +34,29 @@ export async function POST(request: Request) {
 
   if (!imageUrl || typeof imageUrl !== "string") {
     return NextResponse.json({ ok: false, message: "imageUrl is required" }, { status: 400 });
+  }
+
+  try {
+    validateSourceImageUrl(imageUrl);
+  } catch (error) {
+    return NextResponse.json(
+      { ok: false, error: "INVALID_IMAGE_URL", message: error instanceof Error ? error.message : "Invalid image URL" },
+      { status: 400 },
+    );
+  }
+
+  const budget = isBudgetExceeded();
+  if (budget.exceeded) {
+    return NextResponse.json({ ok: false, error: "BUDGET_EXCEEDED", message: budget.reason }, { status: 503 });
+  }
+
+  await maybeGrantFreeTrial(sessionId);
+  const { ok: hasCredits, balance } = await deductCredits(sessionId, "upscale");
+  if (!hasCredits) {
+    return NextResponse.json(
+      { ok: false, error: "INSUFFICIENT_CREDITS", message: "No credits left.", data: { balance, cost: CREDIT_COST.upscale } },
+      { status: 402 },
+    );
   }
 
   if (!process.env.FAL_KEY) {
@@ -51,6 +84,7 @@ export async function POST(request: Request) {
     if (!outputUrl) throw new Error("Upscaler did not return an image URL.");
 
     const saved = await downloadAndSaveOutput(outputUrl, "upscaled");
+    recordGenerationCost("upscale");
     return NextResponse.json({ ok: true, data: { url: saved.publicPath } });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Upscale failed";

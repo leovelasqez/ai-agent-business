@@ -17,6 +17,7 @@ import {
   saveBufferToLocal,
   saveBase64ImageToLocal,
   downloadImageToLocal,
+  fetchValidatedRemoteAsset,
 } from "@/lib/file-storage";
 import { incrementMetric } from "@/lib/metrics";
 import { getSupabaseServiceClient } from "@/lib/supabase";
@@ -102,6 +103,7 @@ function buildStoragePath(rawName: string): string {
 function extensionToMime(ext: string): string {
   if (ext === "png") return "image/png";
   if (ext === "webp") return "image/webp";
+  if (ext === "mp4") return "video/mp4";
   return "image/jpeg";
 }
 
@@ -152,22 +154,16 @@ async function supabaseSaveBase64(
 }
 
 async function supabaseDownloadAndSave(url: string, prefix: string): Promise<StorageSaveResult> {
-  const response = await fetch(url);
-  if (!response.ok) {
-    throw new Error(
-      `Failed to download image for Supabase upload: ${response.status} ${response.statusText}`,
-    );
-  }
-
-  const arrayBuffer = await response.arrayBuffer();
-  const contentType = response.headers.get("content-type") ?? "image/jpeg";
+  const { buffer, contentType } = await fetchValidatedRemoteAsset(url);
   const extension = contentType.includes("png")
     ? "png"
     : contentType.includes("webp")
       ? "webp"
+      : contentType.includes("mp4")
+        ? "mp4"
       : "jpg";
 
-  return supabaseSaveBuffer(Buffer.from(arrayBuffer), `${prefix}.${extension}`, STORAGE_BUCKETS.outputs);
+  return supabaseSaveBuffer(buffer, `${prefix}.${extension}`, STORAGE_BUCKETS.outputs);
 }
 
 // ---- Bunny CDN backend ----
@@ -229,13 +225,14 @@ async function bunnySaveBase64(dataUrlOrBase64: string, prefix: string): Promise
 }
 
 async function bunnyDownloadAndSave(url: string, prefix: string): Promise<StorageSaveResult> {
-  const response = await fetch(url);
-  if (!response.ok) {
-    throw new Error(`Failed to fetch image for CDN upload: ${response.status}`);
-  }
-  const contentType = response.headers.get("content-type") ?? "image/jpeg";
-  const extension = contentType.includes("png") ? "png" : contentType.includes("webp") ? "webp" : "jpg";
-  const buffer = Buffer.from(await response.arrayBuffer());
+  const { buffer, contentType } = await fetchValidatedRemoteAsset(url);
+  const extension = contentType.includes("png")
+    ? "png"
+    : contentType.includes("webp")
+      ? "webp"
+      : contentType.includes("mp4")
+        ? "mp4"
+        : "jpg";
   return bunnySaveBuffer(buffer, prefix, extension);
 }
 

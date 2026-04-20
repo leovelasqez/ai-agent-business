@@ -1,21 +1,30 @@
 import { NextResponse } from "next/server";
-import { checkRateLimit, getClientIp } from "@/lib/rate-limiter";
+import { checkRateLimit } from "@/lib/rate-limiter";
 import { isBudgetExceeded, recordGenerationCost } from "@/lib/cost-control";
 import { maybeGrantFreeTrial, deductCredits, CREDIT_COST } from "@/lib/credits";
 import { runGeneration } from "@/lib/image-provider";
 import { insertGeneration } from "@/lib/db/generations";
+import { getTrustedSessionIdFromRequest } from "@/lib/session";
 import type { PresetId } from "@/lib/presets";
 import type { GenerationVariant } from "@/lib/image-provider";
 
 function getSessionId(request: Request): string {
-  return request.headers.get("cookie")?.match(/mf_session=([^;]+)/)?.[1] ?? getClientIp(request);
+  const sessionId = getTrustedSessionIdFromRequest(request);
+  if (!sessionId) {
+    throw new Error("SESSION_REQUIRED");
+  }
+  return sessionId;
 }
 
 export async function POST(request: Request) {
-  const sessionId = getSessionId(request);
-  const ip = getClientIp(request);
+  let sessionId: string;
+  try {
+    sessionId = getSessionId(request);
+  } catch {
+    return NextResponse.json({ ok: false, error: "SESSION_REQUIRED", message: "A trusted session is required." }, { status: 401 });
+  }
 
-  const rl = checkRateLimit(`variation:${ip}`, 5, 60_000);
+  const rl = checkRateLimit(`variation:${sessionId}`, 5, 60_000);
   if (!rl.allowed) {
     return NextResponse.json(
       { ok: false, error: "RATE_LIMITED", message: "Too many requests." },
