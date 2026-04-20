@@ -2,7 +2,17 @@ import { createServerClient } from "@supabase/ssr";
 import { NextRequest, NextResponse } from "next/server";
 
 const SESSION_COOKIE = "mf_session";
+const LANG_COOKIE = "mf_lang";
+const SUPPORTED_LANGS = ["en", "es", "fr", "pt", "de"] as const;
+type SupportedLang = (typeof SUPPORTED_LANGS)[number];
 const ONE_YEAR_SECONDS = 60 * 60 * 24 * 365;
+
+function resolveLang(acceptLanguage: string | null): SupportedLang {
+  if (!acceptLanguage) return "en";
+  const primary = acceptLanguage.split(",")[0]?.trim().toLowerCase() ?? "";
+  const base = primary.split("-")[0] as SupportedLang;
+  return (SUPPORTED_LANGS as readonly string[]).includes(base) ? base : "en";
+}
 
 export async function proxy(request: NextRequest) {
   // --- Supabase auth session refresh ---
@@ -46,6 +56,19 @@ export async function proxy(request: NextRequest) {
       maxAge: ONE_YEAR_SECONDS,
       path: "/",
     });
+  }
+
+  // --- Language cookie (mf_lang) ---
+  // Seed on first visit from Accept-Language so SSR and client agree.
+  if (!request.cookies.has(LANG_COOKIE)) {
+    const lang = resolveLang(request.headers.get("accept-language"));
+    supabaseResponse.cookies.set(LANG_COOKIE, lang, {
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      maxAge: ONE_YEAR_SECONDS,
+      path: "/",
+    });
+    request.cookies.set(LANG_COOKIE, lang);
   }
 
   return supabaseResponse;

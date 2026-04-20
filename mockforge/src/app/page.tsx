@@ -195,7 +195,7 @@ export default function Home() {
   const c = copy[landingLang];
 
   return (
-    <div className="min-h-screen bg-black text-white">
+    <div className="min-h-screen bg-[color:var(--background)] text-[color:var(--foreground)]">
       <OnboardingTour />
       <SiteHeader />
 

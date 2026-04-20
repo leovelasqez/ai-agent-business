@@ -9,7 +9,8 @@ interface LanguageContextValue {
   t: Translations;
 }
 
-const LANGUAGE_STORAGE_KEY = "mockforge-lang";
+const LANG_COOKIE = "mf_lang";
+const ONE_YEAR_SECONDS = 60 * 60 * 24 * 365;
 
 const LanguageContext = createContext<LanguageContextValue>({
   language: "en",
@@ -17,38 +18,28 @@ const LanguageContext = createContext<LanguageContextValue>({
   t: translations.en,
 });
 
-const SUPPORTED_LANGUAGES: Language[] = ["en", "es", "fr", "pt", "de"];
-
-function detectBrowserLanguage(): Language {
-  const lang = window.navigator.language.toLowerCase();
-  if (lang.startsWith("es")) return "es";
-  if (lang.startsWith("fr")) return "fr";
-  if (lang.startsWith("pt")) return "pt";
-  if (lang.startsWith("de")) return "de";
-  return "en";
+function persistLang(lang: Language) {
+  if (typeof document === "undefined") return;
+  const secure = window.location.protocol === "https:" ? "; secure" : "";
+  document.cookie = `${LANG_COOKIE}=${lang}; path=/; max-age=${ONE_YEAR_SECONDS}; samesite=lax${secure}`;
 }
 
-function readClientLanguage(): Language {
-  const stored = window.localStorage.getItem(LANGUAGE_STORAGE_KEY) as Language | null;
-  if (stored && SUPPORTED_LANGUAGES.includes(stored)) return stored;
-  return detectBrowserLanguage();
-}
-
-export function LanguageProvider({ children }: { children: React.ReactNode }) {
-  const [language, setLanguageState] = useState<Language>("en");
-
-  useEffect(() => {
-    const detected = readClientLanguage();
-    setLanguageState((current) => (current === detected ? current : detected));
-  }, []);
+export function LanguageProvider({
+  children,
+  initialLanguage = "en",
+}: {
+  children: React.ReactNode;
+  initialLanguage?: Language;
+}) {
+  const [language, setLanguageState] = useState<Language>(initialLanguage);
 
   useEffect(() => {
     document.documentElement.lang = language;
-    window.localStorage.setItem(LANGUAGE_STORAGE_KEY, language);
   }, [language]);
 
   const setLanguage = useCallback((lang: Language) => {
     setLanguageState(lang);
+    persistLang(lang);
   }, []);
 
   const value = useMemo(

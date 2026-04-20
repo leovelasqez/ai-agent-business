@@ -33,7 +33,7 @@ function UploadPageInner() {
           : "a";
 
   return (
-    <div className="min-h-screen bg-black text-white">
+    <div className="min-h-screen bg-[color:var(--background)] text-[color:var(--foreground)]">
       <SiteHeader />
 
       <main className="mx-auto w-full max-w-5xl px-5 py-10">

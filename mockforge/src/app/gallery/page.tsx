@@ -49,7 +49,7 @@ export default function GalleryPage() {
   }
 
   return (
-    <div className="min-h-screen bg-black text-white">
+    <div className="min-h-screen bg-[color:var(--background)] text-[color:var(--foreground)]">
       <SiteHeader />
 
       <main className="mx-auto max-w-7xl px-5 py-16">

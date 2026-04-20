@@ -14,7 +14,7 @@ export default async function GenerationDetailPage({ params }: Props) {
   if (!generation) notFound();
 
   return (
-    <div className="min-h-screen bg-black text-white">
+    <div className="min-h-screen bg-[color:var(--background)] text-[color:var(--foreground)]">
       <SiteHeader />
       <main className="mx-auto w-full max-w-6xl px-6 py-10">
         <GenerationDetail generation={generation} />

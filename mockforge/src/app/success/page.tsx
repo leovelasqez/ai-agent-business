@@ -65,7 +65,7 @@ export default function SuccessPage() {
   const { t } = useLanguage();
 
   return (
-    <div className="min-h-screen bg-black text-white">
+    <div className="min-h-screen bg-[color:var(--background)] text-[color:var(--foreground)]">
       <SiteHeader />
       <Suspense
         fallback={

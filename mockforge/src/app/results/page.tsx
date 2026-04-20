@@ -46,7 +46,7 @@ function ResultsPageInner() {
   const isCompare = compareVariants && compareVariants.length >= 2;
 
   return (
-    <div className="min-h-screen bg-black text-white">
+    <div className="min-h-screen bg-[color:var(--background)] text-[color:var(--foreground)]">
       <SiteHeader />
 
       <main className="mx-auto w-full max-w-6xl px-5 py-10">
