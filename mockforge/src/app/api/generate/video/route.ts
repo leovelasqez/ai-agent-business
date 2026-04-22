@@ -5,9 +5,10 @@ import { getRequestId, jsonWithRequestId, log } from "@/lib/logger";
 import { insertGeneration } from "@/lib/db/generations";
 import { downloadAndSaveOutput } from "@/lib/storage-provider";
 import { isBudgetExceeded, recordGenerationCost } from "@/lib/cost-control";
-import { maybeGrantFreeTrial, deductCredits, CREDIT_COST } from "@/lib/credits";
+import { maybeGrantFreeTrial, deductCredits, refundCreditsAmount, CREDIT_COST } from "@/lib/credits";
 import { validateSourceImageUrl } from "@/lib/image-provider";
 import { getTrustedSessionIdFromRequest } from "@/lib/session";
+import { resolveFalImageUrl } from "@/lib/providers/fal";
 
 const KLING_MODEL = "fal-ai/kling-video/v2/master/image-to-video";
 
@@ -88,21 +89,6 @@ export async function POST(request: Request) {
     );
   }
 
-  await maybeGrantFreeTrial(sessionId);
-  const { ok: hasCredits, balance } = await deductCredits(sessionId, "video");
-  if (!hasCredits) {
-    return jsonWithRequestId(
-      {
-        ok: false,
-        error: "INSUFFICIENT_CREDITS",
-        message: "No credits left.",
-        data: { balance, cost: CREDIT_COST.video },
-      },
-      requestId,
-      { status: 402 },
-    );
-  }
-
   fal.config({ credentials: falKey });
 
   log("info", "video generation request accepted", {
@@ -112,10 +98,31 @@ export async function POST(request: Request) {
     extra: { preset, productName, imageUrl },
   });
 
+  await maybeGrantFreeTrial(sessionId);
+  const cost = CREDIT_COST.video;
+  const { ok: hasCredits, balance } = await deductCredits(sessionId, "video");
+  if (!hasCredits) {
+    return jsonWithRequestId(
+      {
+        ok: false,
+        error: "INSUFFICIENT_CREDITS",
+        message: "No credits left.",
+        data: { balance, cost },
+      },
+      requestId,
+      { status: 402 },
+    );
+  }
+
   try {
+    const resolvedImageUrl = await resolveFalImageUrl(imageUrl);
+    if (!resolvedImageUrl) {
+      throw new Error("Could not resolve image URL for video generation.");
+    }
+
     const result = await fal.subscribe(KLING_MODEL, {
       input: {
-        image_url: imageUrl,
+        image_url: resolvedImageUrl,
         prompt: customPrompt ?? MOTION_PROMPT,
         duration: "5",
       },
@@ -164,6 +171,7 @@ export async function POST(request: Request) {
       requestId,
     );
   } catch (error) {
+    await refundCreditsAmount(sessionId, cost, "refund_video_failed");
     const message = error instanceof Error ? error.message : "Unknown error";
     const friendly = mapProviderError(message);
 

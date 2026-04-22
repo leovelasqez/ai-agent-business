@@ -3,9 +3,10 @@ import { fal } from "@fal-ai/client";
 import { checkRateLimit } from "@/lib/rate-limiter";
 import { downloadAndSaveOutput } from "@/lib/storage-provider";
 import { isBudgetExceeded, recordGenerationCost } from "@/lib/cost-control";
-import { maybeGrantFreeTrial, deductCredits, CREDIT_COST } from "@/lib/credits";
+import { maybeGrantFreeTrial, deductCredits, refundCreditsAmount, CREDIT_COST } from "@/lib/credits";
 import { validateSourceImageUrl } from "@/lib/image-provider";
 import { getTrustedSessionIdFromRequest } from "@/lib/session";
+import { resolveFalImageUrl } from "@/lib/providers/fal";
 
 function getFalKey() {
   const key = process.env.FAL_KEY;
@@ -50,24 +51,27 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: false, error: "BUDGET_EXCEEDED", message: budget.reason }, { status: 503 });
   }
 
+  if (!process.env.FAL_KEY) {
+    return NextResponse.json({ ok: false, message: "FAL_KEY not configured." }, { status: 503 });
+  }
+
   await maybeGrantFreeTrial(sessionId);
+  const cost = CREDIT_COST.upscale;
   const { ok: hasCredits, balance } = await deductCredits(sessionId, "upscale");
   if (!hasCredits) {
     return NextResponse.json(
-      { ok: false, error: "INSUFFICIENT_CREDITS", message: "No credits left.", data: { balance, cost: CREDIT_COST.upscale } },
+      { ok: false, error: "INSUFFICIENT_CREDITS", message: "No credits left.", data: { balance, cost } },
       { status: 402 },
     );
-  }
-
-  if (!process.env.FAL_KEY) {
-    return NextResponse.json({ ok: false, message: "FAL_KEY not configured." }, { status: 503 });
   }
 
   try {
     fal.config({ credentials: getFalKey() });
 
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
-    const absoluteUrl = imageUrl.startsWith("http") ? imageUrl : `${appUrl}${imageUrl}`;
+    const absoluteUrl = await resolveFalImageUrl(imageUrl);
+    if (!absoluteUrl) {
+      throw new Error("Could not resolve image URL for upscaling.");
+    }
 
     const result = await fal.subscribe("fal-ai/clarity-upscaler", {
       input: {
@@ -87,6 +91,7 @@ export async function POST(request: Request) {
     recordGenerationCost("upscale");
     return NextResponse.json({ ok: true, data: { url: saved.publicPath } });
   } catch (err) {
+    await refundCreditsAmount(sessionId, cost, "refund_upscale_failed");
     const message = err instanceof Error ? err.message : "Upscale failed";
     return NextResponse.json({ ok: false, message }, { status: 500 });
   }

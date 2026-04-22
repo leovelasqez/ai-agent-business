@@ -37,7 +37,7 @@ function getFalKey() {
   return key;
 }
 
-async function resolveFalImageUrl(sourceImageUrl?: string) {
+export async function resolveFalImageUrl(sourceImageUrl?: string) {
   if (!sourceImageUrl) return undefined;
 
   if (sourceImageUrl.startsWith("http://") || sourceImageUrl.startsWith("https://")) {
