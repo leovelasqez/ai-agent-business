@@ -32,17 +32,17 @@ Definition of done:
 
 - [x] Mover la deducción de créditos para que no ocurra antes de validar configuración mínima del provider.
 - [x] Asegurar que no se pierdan créditos cuando la generación falla.
-- [ ] Definir comportamiento explícito para batch parcial:
+- [x] Definir comportamiento explícito para batch parcial:
   - [ ] cobrar solo éxitos
   - [x] o cobrar upfront y reembolsar fallidos
-- [ ] Aplicar la misma regla a:
+- [x] Aplicar la misma regla a:
   - [x] `/api/generate`
   - [x] `/api/generate/batch`
   - [x] `/api/generate/variation`
   - [x] `/api/generate/upscale`
   - [x] `/api/generate/video`
-- [~] Añadir tests de no-cobro / refund en fallo de provider.
-- [~] Verificar con Stripe webhook que una compra no duplica créditos.
+- [x] Añadir tests de no-cobro / refund en fallo de provider.
+- [x] Verificar con Stripe webhook que una compra no duplica créditos.
 
 Nota:
 - Política elegida para launch readiness: `cobro upfront + refund de variantes fallidas` en batch.
