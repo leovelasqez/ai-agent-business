@@ -250,3 +250,30 @@ export async function maybeGrantFreeTrial(sessionId: string): Promise<number> {
 
   return grantCredits(sessionId, "free_trial");
 }
+
+/**
+ * Refund arbitrary credits after an internal/provider failure.
+ * This is intentionally separate from purchase grants and free-trial grants.
+ */
+export async function refundCreditsAmount(
+  sessionId: string,
+  amount: number,
+  reason = "refund_internal_failure",
+): Promise<number> {
+  if (amount <= 0) {
+    return getBalance(sessionId);
+  }
+
+  if (!isSupabaseConfigured()) {
+    memCredit(sessionId, amount);
+    return memGetBalance(sessionId);
+  }
+
+  try {
+    const result = await dbCredit(sessionId, amount, reason);
+    return result.balance;
+  } catch {
+    memCredit(sessionId, amount);
+    return memGetBalance(sessionId);
+  }
+}
