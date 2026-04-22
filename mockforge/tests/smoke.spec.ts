@@ -4,6 +4,7 @@ import path from 'node:path';
 test.beforeEach(async ({ page }) => {
   await page.addInitScript(() => {
     localStorage.removeItem('mockforge-lang');
+    localStorage.setItem('mockforge-tour-done', '1');
   });
 });
 
@@ -13,8 +14,9 @@ test.describe('MockForge smoke flow', () => {
 
     await expect(page.getByRole('link', { name: /start free|empieza gratis/i })).toBeVisible();
 
-    const langToggle = page.getByRole('button', { name: /switch to spanish|cambiar a español/i });
+    const langToggle = page.getByRole('button', { name: /change language\. current language: english/i }).first();
     await langToggle.click();
+    await page.getByRole('menuitemradio', { name: /^espanol es$/i }).click();
 
     await expect(page.getByRole('link', { name: /empieza gratis/i })).toBeVisible();
     await expect(page.getByRole('navigation').getByRole('link', { name: /^cómo funciona$/i })).toBeVisible();
@@ -23,8 +25,9 @@ test.describe('MockForge smoke flow', () => {
   test('upload form controls work and preset selection updates', async ({ page }) => {
     await page.goto('/upload');
 
-    const langToggle = page.getByRole('button', { name: /switch to spanish|cambiar a español/i });
+    const langToggle = page.getByRole('button', { name: /change language\. current language: english/i }).first();
     await langToggle.click();
+    await page.getByRole('menuitemradio', { name: /^espanol es$/i }).click();
 
     await expect(page.getByText(/sube tu producto/i)).toBeVisible();
     await expect(page.getByText(/detalles del producto/i)).toBeVisible();

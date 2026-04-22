@@ -61,13 +61,14 @@ Definition of done:
   - [ ] self-host
   - [x] fallback local
   - [ ] o dependencia externa aceptada conscientemente
-- [~] Arreglar E2E para que realmente levanten la app en CI.
+- [x] Arreglar E2E para que realmente levanten la app en CI.
 - [x] Configurar `playwright.config.ts` con `webServer` o equivalente.
-- [~] Confirmar que `.github/workflows/ci.yml` falla cuando debe y pasa cuando debe.
+- [x] Confirmar que `.github/workflows/ci.yml` falla cuando debe y pasa cuando debe.
 
 Nota:
 - `playwright.config.ts` ahora levanta el dev server con `SESSION_SECRET` y puerto dedicado.
-- Queda pendiente cerrar un bloqueo operativo en E2E antes de considerar completa la definición de done de esta sección.
+- E2E smoke test corregido: selector de idioma ahora distingue Espanol de Portugues.
+- `tsc --noEmit` pasa limpio (incluido fix de NODE_ENV read-only en test).
 
 Definition of done:
 - `npm run lint`
@@ -84,7 +85,7 @@ Todos verdes en local y CI.
 - [x] Cambiar `/api/admin/costs` a modo fail-closed si falta `ADMIN_SECRET`.
 - [x] Verificar que `/api/admin/cleanup` requiere secreto en todos los entornos públicos.
 - [x] Revisar si `/api/debug/upload` y `/debug/upload` deben quedar accesibles en producción.
-- [ ] Si no deben existir públicamente:
+- [x] Si no deben existir públicamente:
   - [x] deshabilitarlos en producción
   - [x] o protegerlos por secreto fuerte
 - [x] Revisar exposición de `/api/provider/health` y decidir cuánta información debe devolver públicamente.
