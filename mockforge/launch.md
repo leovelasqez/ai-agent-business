@@ -184,21 +184,36 @@ Definition of done:
 
 ### 4.2 UX crítica antes de abrir tráfico
 
-- [ ] Revisar móvil y desktop en:
-  - [ ] `/`
-  - [ ] `/upload`
-  - [ ] `/results`
-  - [ ] `/history`
-  - [ ] `/gallery`
-  - [ ] `/success`
-- [ ] Verificar estados de error legibles para:
-  - [ ] upload inválido
-  - [ ] sin créditos
-  - [ ] fallo de provider
-  - [ ] timeout
-  - [ ] pago no configurado
-- [ ] Confirmar copy consistente en EN/ES como mínimo.
-- [ ] Revisar si el tour onboarding debe salir a usuarios nuevos en launch.
+- [x] Revisar móvil y desktop en:
+  - [x] `/` — layout responsive, footer links funcionando
+  - [x] `/upload` — form usable en mobile, drag & drop con feedback
+  - [x] `/results` — estados de generación (processing/failed/completed)
+  - [x] `/history` — server-rendered, paginación correcta
+  - [x] `/gallery` — localizada, grid responsive, load more
+  - [x] `/success` — traducida, layout responsive
+- [x] Verificar estados de error legibles para:
+  - [x] upload inválido → error visual en form + drag & drop muestra error si archivo no es PNG/JPG/WEBP
+  - [x] sin créditos → CreditsBadge muestra estado “low” en amber (falta CTA de compra hasta que Stripe esté configurado)
+  - [x] fallo de provider → tarjeta roja con mensaje de error en results-view
+  - [x] timeout → error genérico con auto-clear a 6s en form
+  - [x] pago no configurado → no crashea, checkout muestra error limpio
+- [x] Confirmar copy consistente en EN/ES como mínimo.
+  → Todos los textos visibles traducidos en EN, ES, FR, PT, DE.
+  → Gallery, credits badge, header nav, results loading — todo localizado (commit `21e6880`).
+- [~] Revisar si el tour onboarding debe salir a usuarios nuevos en launch.
+  → Tour existe (cookie `mockforge-tour-done`) pero es placeholder. No bloquea launch.
+
+**Mejoras aplicadas (commit `21e6880`):**
+- Gallery: copiado 100% localizado (antes era hardcoded en inglés)
+- Header: link Gallery en desktop + mobile nav
+- Form: labels vinculados a inputs con `htmlFor`/`id` (accesibilidad)
+- Results: "Generating..." localizado
+- Credits badge: traducido a 5 idiomas
+- File picker: error visible al dropear archivo inválido
+
+**Pendientes menores (no bloquean launch):**
+- Credits badge “low” no tiene CTA de compra (espera Stripe)
+- Onboarding tour es placeholder
 
 ## 5. API Pública
 
