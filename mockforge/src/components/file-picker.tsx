@@ -22,6 +22,7 @@ function FilePickerComponent({
   const [internalSelectedFileName, setInternalSelectedFileName] =
     useState<string>("");
   const [isDragging, setIsDragging] = useState(false);
+  const [dragError, setDragError] = useState<string | null>(null);
   const dropRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -31,6 +32,7 @@ function FilePickerComponent({
   }, [previewUrl]);
 
   const processFile = (file: File) => {
+    setDragError(null);
     onFileSelected(file);
     setInternalSelectedFileName(file.name);
     const objectUrl = URL.createObjectURL(file);
@@ -43,6 +45,7 @@ function FilePickerComponent({
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = event.currentTarget.files?.[0] ?? null;
     if (selectedFile) {
+      setDragError(null);
       processFile(selectedFile);
     } else {
       onFileSelected(null);
@@ -60,6 +63,8 @@ function FilePickerComponent({
     const file = event.dataTransfer.files?.[0];
     if (file && ["image/png", "image/jpeg", "image/webp"].includes(file.type)) {
       processFile(file);
+    } else if (file) {
+      setDragError(fp.invalidType);
     }
   };
 
@@ -200,6 +205,8 @@ function FilePickerComponent({
             </svg>
             {visibleSelectedFileName}
           </span>
+        ) : dragError ? (
+          <span className="text-red-300">{dragError}</span>
         ) : (
           <span className="text-white/20">{fp.hint}</span>
         )}

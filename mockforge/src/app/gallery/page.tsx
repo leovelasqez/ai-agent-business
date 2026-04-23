@@ -15,7 +15,8 @@ interface GalleryItem {
 }
 
 export default function GalleryPage() {
-  useLanguage();
+  const { t } = useLanguage();
+  const g = t.gallery;
   const [items, setItems] = useState<GalleryItem[]>([]);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -56,19 +57,19 @@ export default function GalleryPage() {
         {/* Header */}
         <div className="mb-12 text-center">
           <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-[#05DF72]/20 bg-[#05DF72]/[0.06] px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.2em] text-[#05DF72]">
-            Community Gallery
+            {g.badge}
           </div>
           <h1 className="text-4xl font-black tracking-tight md:text-5xl">
-            Made with MockForge
+            {g.title}
           </h1>
           <p className="mx-auto mt-4 max-w-lg text-base text-white/40">
-            Mockups shared by the community. Generate yours and opt in to be featured.
+            {g.description}
           </p>
           <Link
             href="/upload"
             className="mt-6 inline-flex items-center justify-center rounded-xl bg-[#05DF72] px-6 py-3 text-sm font-bold text-black transition hover:bg-[#34e58a]"
           >
-            Generate your own →
+            {g.cta}
           </Link>
         </div>
 
@@ -81,12 +82,12 @@ export default function GalleryPage() {
           </div>
         ) : items.length === 0 ? (
           <div className="py-24 text-center">
-            <p className="text-white/30">No public mockups yet. Be the first to share yours!</p>
+            <p className="text-white/30">{g.empty}</p>
             <Link
               href="/upload"
               className="mt-6 inline-flex items-center justify-center rounded-xl border border-white/[0.1] px-5 py-2.5 text-sm font-medium text-white/60 transition hover:border-white/20 hover:text-white"
             >
-              Start generating
+              {g.emptyCta}
             </Link>
           </div>
         ) : (
@@ -125,7 +126,7 @@ export default function GalleryPage() {
                   disabled={loadingMore}
                   className="rounded-xl border border-white/[0.1] px-8 py-3 text-sm font-medium text-white/60 transition hover:border-white/20 hover:text-white disabled:opacity-40"
                 >
-                  {loadingMore ? "Loading..." : "Load more"}
+                  {loadingMore ? g.loading : g.loadMore}
                 </button>
               </div>
             )}

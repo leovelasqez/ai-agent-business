@@ -135,6 +135,11 @@ export function MockupUploadForm(props: MockupUploadFormProps) {
   const { t, language } = useLanguage();
   const f = t.form;
   const localizedPresets = getLocalizedPresets(language);
+  const productNameId = "product-name";
+  const categoryId = "product-category";
+  const formatId = "product-format";
+  const customModelId = "custom-model";
+  const customPromptId = "custom-prompt";
 
   const [state, dispatch] = useReducer(reducer, props, makeInitialState);
 
@@ -297,8 +302,9 @@ export function MockupUploadForm(props: MockupUploadFormProps) {
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
-              <label className="mb-2 block text-xs font-medium text-white/40">{f.productName}</label>
+              <label htmlFor={productNameId} className="mb-2 block text-xs font-medium text-white/40">{f.productName}</label>
               <input
+                id={productNameId}
                 value={state.productName}
                 onChange={(e) => dispatch({ type: "SET_PRODUCT_NAME", value: e.target.value })}
                 className={inputClass}
@@ -306,8 +312,9 @@ export function MockupUploadForm(props: MockupUploadFormProps) {
               />
             </div>
             <div>
-              <label className="mb-2 block text-xs font-medium text-white/40">{f.productCategory}</label>
+              <label htmlFor={categoryId} className="mb-2 block text-xs font-medium text-white/40">{f.productCategory}</label>
               <input
+                id={categoryId}
                 value={state.category}
                 onChange={(e) => dispatch({ type: "SET_CATEGORY", value: e.target.value })}
                 className={inputClass}
@@ -317,8 +324,9 @@ export function MockupUploadForm(props: MockupUploadFormProps) {
           </div>
 
           <div className="mt-4">
-            <label className="mb-2 block text-xs font-medium text-white/40">{f.format}</label>
+            <label htmlFor={formatId} className="mb-2 block text-xs font-medium text-white/40">{f.format}</label>
             <select
+              id={formatId}
               value={state.format}
               onChange={(e) => dispatch({ type: "SET_FORMAT", value: e.target.value })}
               className={selectClass}
@@ -410,8 +418,9 @@ export function MockupUploadForm(props: MockupUploadFormProps) {
             <h3 className="mb-4 text-sm font-semibold text-white/60">{t.upload.customSettings}</h3>
             <div className="space-y-4">
               <div>
-                <label className="mb-2 block text-xs font-medium text-white/40">{f.customModel}</label>
+                <label htmlFor={customModelId} className="mb-2 block text-xs font-medium text-white/40">{f.customModel}</label>
                 <select
+                  id={customModelId}
                   value={state.customModel}
                   onChange={(e) => dispatch({ type: "SET_CUSTOM_MODEL", value: e.target.value })}
                   className={selectClass}
@@ -423,8 +432,9 @@ export function MockupUploadForm(props: MockupUploadFormProps) {
                 </select>
               </div>
               <div>
-                <label className="mb-2 block text-xs font-medium text-white/40">{f.customPrompt}</label>
+                <label htmlFor={customPromptId} className="mb-2 block text-xs font-medium text-white/40">{f.customPrompt}</label>
                 <textarea
+                  id={customPromptId}
                   value={state.customPrompt}
                   onChange={(e) => dispatch({ type: "SET_CUSTOM_PROMPT", value: e.target.value })}
                   rows={3}

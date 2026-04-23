@@ -288,7 +288,7 @@ function CompareCard({
           <div className="flex aspect-square items-center justify-center rounded-xl border border-white/[0.06] bg-black/30">
             <div className="flex flex-col items-center gap-4">
               <div className="h-10 w-10 animate-spin rounded-full border-4 border-white/10 border-t-lime-400" />
-              <p className="text-xs text-white/25">Generating...</p>
+              <p className="text-xs text-white/25">{rv.variantStatus.processing}</p>
             </div>
           </div>
         ) : result.status === "failed" ? (

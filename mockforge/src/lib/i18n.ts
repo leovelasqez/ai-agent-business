@@ -9,10 +9,22 @@ export const translations: Record<Language, Record<string, any>> = {
       history: "History",
       generate: "Generate",
       howItWorks: "How it works",
+      gallery: "Gallery",
       templates: "Templates",
       startFree: "Start free",
       switchToSpanish: "Switch to Spanish",
       switchToEnglish: "Switch to English",
+    },
+
+    gallery: {
+      badge: "Community Gallery",
+      title: "Made with MockForge",
+      description: "Mockups shared by the community. Generate yours and opt in to be featured.",
+      cta: "Generate your own →",
+      empty: "No public mockups yet. Be the first to share yours!",
+      emptyCta: "Start generating",
+      loadMore: "Load more",
+      loading: "Loading...",
     },
 
     // Landing page
@@ -262,6 +274,7 @@ export const translations: Record<Language, Record<string, any>> = {
       history: "Historial",
       generate: "Generar",
       howItWorks: "Cómo funciona",
+      gallery: "Galería",
       templates: "Templates",
       startFree: "Empieza gratis",
       switchToSpanish: "Cambiar a español",
@@ -498,6 +511,7 @@ export const translations: Record<Language, Record<string, any>> = {
       replaceImage: "Reemplazar imagen",
       clickToBrowse: "Haz clic para buscar",
       uploadingStatus: "Subiendo...",
+      invalidType: "Archivo inválido. Usa PNG, JPG o WEBP.",
     },
 
     // Webview warning
@@ -511,9 +525,21 @@ export const translations: Record<Language, Record<string, any>> = {
   fr: {
     nav: {
       history: "Historique", generate: "Générer", howItWorks: "Comment ça marche",
+      gallery: "Galerie",
       templates: "Modèles", startFree: "Commencer gratuitement",
       switchToSpanish: "Passer à l'espagnol", switchToEnglish: "Passer à l'anglais",
     },
+    gallery: {
+      badge: "Galerie de la communauté",
+      title: "Créé avec MockForge",
+      description: "Des mockups partagés par la communauté. Générez le vôtre et choisissez d'être mis en avant.",
+      cta: "Générer le vôtre →",
+      empty: "Aucun mockup public pour l'instant. Soyez le premier à partager le vôtre !",
+      emptyCta: "Commencer à générer",
+      loadMore: "Charger plus",
+      loading: "Chargement...",
+    },
+
     landing: {
       badge: "Générateur de mockups e-commerce",
       headline: "Transformez une photo produit en mockups prêts à l'emploi.",
@@ -643,6 +669,7 @@ export const translations: Record<Language, Record<string, any>> = {
   pt: {
     nav: {
       history: "Histórico", generate: "Gerar", howItWorks: "Como funciona",
+      gallery: "Galeria",
       templates: "Modelos", startFree: "Começar grátis",
       switchToSpanish: "Mudar para espanhol", switchToEnglish: "Mudar para inglês",
     },
@@ -775,6 +802,7 @@ export const translations: Record<Language, Record<string, any>> = {
   de: {
     nav: {
       history: "Verlauf", generate: "Generieren", howItWorks: "Wie es funktioniert",
+      gallery: "Galerie",
       templates: "Vorlagen", startFree: "Kostenlos starten",
       switchToSpanish: "Zu Spanisch wechseln", switchToEnglish: "Zu Englisch wechseln",
     },

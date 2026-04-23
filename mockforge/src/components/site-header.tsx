@@ -107,7 +107,7 @@ export function SiteHeader() {
             href="/gallery"
             className="rounded-lg px-3.5 py-2 text-sm text-[color:var(--muted)] transition hover:bg-[color:var(--surface-hover)] hover:text-[color:var(--foreground)]"
           >
-            Gallery
+            {t.nav.gallery}
           </Link>
         </nav>
 
@@ -258,6 +258,13 @@ export function SiteHeader() {
               className="rounded-xl px-4 py-3 text-sm text-[var(--muted)] transition hover:bg-[color:var(--surface)] hover:text-[color:var(--foreground)]"
             >
               {t.nav.history}
+            </Link>
+            <Link
+              href="/gallery"
+              onClick={() => setMobileOpen(false)}
+              className="rounded-xl px-4 py-3 text-sm text-[var(--muted)] transition hover:bg-[color:var(--surface)] hover:text-[color:var(--foreground)]"
+            >
+              {t.nav.gallery}
             </Link>
 
           </nav>
