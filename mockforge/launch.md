@@ -109,22 +109,23 @@ Nota:
 - Deploy automático en push a `main`. Último deploy: Ready, 36s.
 - Health check en producción confirma: fal reachable, supabase ready, storage supabase.
 
-### 3.2 Supabase
+### 3.2 Supabase ✅
 
-- [~] Ejecutar migraciones en el proyecto de producción.
-  → 16 migraciones en `supabase/migrations/`. Pendiente verificar si ya están aplicadas.
-- [ ] Verificar tablas críticas:
-  - [ ] `generations`
-  - [ ] `generation_jobs`
-  - [ ] `credit_accounts`
-  - [ ] `credit_transactions`
-  - [ ] `api_keys` si aplica
-- [ ] Verificar índices y RPCs:
-  - [ ] `deduct_credits_atomic`
-  - [ ] `grant_credits_once`
-  - [ ] `increment_api_key_usage`
+- [x] Ejecutar migraciones en el proyecto de producción.
+  → 16 migraciones verificadas, todas aplicadas al proyecto `lbcrvwbsxzcyrxvnjwtf`.
+- [x] Verificar tablas críticas:
+  - [x] `generations`
+  - [x] `generation_jobs`
+  - [x] `credit_accounts`
+  - [x] `credit_transactions`
+  - [x] `api_keys`
+- [x] Verificar índices y RPCs:
+  - [x] `deduct_credits_atomic`
+  - [x] `grant_credits_once`
+  - [x] `increment_api_key_usage`
 - [x] Validar lectura/escritura real desde la app desplegada.
   → `/api/admin/costs` responde correctamente contra Supabase prod.
+- [x] Buckets de storage verificados: `mockforge-inputs` y `mockforge-outputs` (públicos).
 - [ ] Confirmar backups y acceso operativo al proyecto.
 
 ### 3.3 Stripe
