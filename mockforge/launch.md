@@ -92,24 +92,27 @@ Definition of done:
 
 ### 3.1 Infra y configuración
 
-- [ ] Definir entorno de producción final:
-  - [ ] Vercel
-  - [ ] VPS
-  - [ ] otro
-- [ ] Configurar `NEXT_PUBLIC_APP_URL` con dominio final real.
-- [ ] Configurar `IMAGE_PROVIDER=fal`.
-- [ ] Configurar `FAL_KEY`.
-- [ ] Configurar `SESSION_SECRET` explícito.
-- [ ] Configurar `STORAGE_PROVIDER` para producción:
-  - [ ] `supabase`
-  - [ ] o `cdn`
-- [ ] Evitar depender del filesystem local como backend principal en producción.
-- [ ] Confirmar buckets y permisos de storage.
+- [x] Definir entorno de producción final:
+  - [x] Vercel (conectado a `leovelasqez/ai-agent-business`, branch `main`)
+- [x] Configurar `NEXT_PUBLIC_APP_URL` con dominio final real.
+  → `https://mockforge-gray.vercel.app` (actualizar cuando haya dominio custom)
+- [x] Configurar `IMAGE_PROVIDER=fal`.
+- [x] Configurar `FAL_KEY`.
+- [x] Configurar `SESSION_SECRET` explícito.
+- [x] Configurar `STORAGE_PROVIDER` para producción:
+  - [x] `supabase`
+- [x] Evitar depender del filesystem local como backend principal en producción.
+- [x] Confirmar buckets y permisos de storage.
 - [ ] Confirmar lifecycle/cleanup de assets viejos.
+
+Nota:
+- Deploy automático en push a `main`. Último deploy: Ready, 36s.
+- Health check en producción confirma: fal reachable, supabase ready, storage supabase.
 
 ### 3.2 Supabase
 
-- [ ] Ejecutar migraciones en el proyecto de producción.
+- [~] Ejecutar migraciones en el proyecto de producción.
+  → 16 migraciones en `supabase/migrations/`. Pendiente verificar si ya están aplicadas.
 - [ ] Verificar tablas críticas:
   - [ ] `generations`
   - [ ] `generation_jobs`
@@ -120,7 +123,8 @@ Definition of done:
   - [ ] `deduct_credits_atomic`
   - [ ] `grant_credits_once`
   - [ ] `increment_api_key_usage`
-- [ ] Validar lectura/escritura real desde la app desplegada.
+- [x] Validar lectura/escritura real desde la app desplegada.
+  → `/api/admin/costs` responde correctamente contra Supabase prod.
 - [ ] Confirmar backups y acceso operativo al proyecto.
 
 ### 3.3 Stripe
