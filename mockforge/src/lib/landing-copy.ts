@@ -53,7 +53,7 @@ export interface LandingFooter {
   legal: string;
   productLinks: [string, string][];
   companyLinks: string[];
-  legalLinks: string[];
+  legalLinks: [string, string][];
   rights: string;
   built: string;
 }
@@ -251,7 +251,7 @@ export const landingCopy: Record<Language, LandingContent> = {
       legal: "Legal",
       productLinks: [["Features", "/upload"], ["Templates", "/#templates"], ["How it works", "/#how-it-works"], ["History", "/history"], ["Pricing", "/upload"]],
       companyLinks: ["About", "Blog", "Careers", "Press"],
-      legalLinks: ["Privacy Policy", "Terms of Service", "Cookie Policy", "GDPR"],
+      legalLinks: [["Privacy Policy", "/privacy"], ["Terms of Service", "/terms"], ["Cookie Policy", "/cookies"]],
       rights: "All rights reserved.",
       built: "Powered by fal.ai · Built with Next.js",
     },
@@ -329,7 +329,7 @@ export const landingCopy: Record<Language, LandingContent> = {
       legal: "Legal",
       productLinks: [["Funciones", "/upload"], ["Templates", "/#templates"], ["Cómo funciona", "/#how-it-works"], ["Historial", "/history"], ["Precios", "/upload"]],
       companyLinks: ["Nosotros", "Blog", "Carreras", "Prensa"],
-      legalLinks: ["Privacidad", "Términos del servicio", "Política de cookies", "GDPR"],
+      legalLinks: [["Privacidad", "/privacy"], ["Términos del servicio", "/terms"], ["Política de cookies", "/cookies"]],
       rights: "Todos los derechos reservados.",
       built: "Powered by fal.ai · Hecho con Next.js",
     },
@@ -407,7 +407,7 @@ export const landingCopy: Record<Language, LandingContent> = {
       legal: "Légal",
       productLinks: [["Fonctionnalités", "/upload"], ["Templates", "/#templates"], ["Comment ça marche", "/#how-it-works"], ["Historique", "/history"], ["Tarifs", "/upload"]],
       companyLinks: ["À propos", "Blog", "Carrières", "Presse"],
-      legalLinks: ["Confidentialité", "Conditions d'utilisation", "Cookies", "RGPD"],
+      legalLinks: [["Confidentialité", "/privacy"], ["Conditions d'utilisation", "/terms"], ["Cookies", "/cookies"]],
       rights: "Tous droits réservés.",
       built: "Powered by fal.ai · Construit avec Next.js",
     },
@@ -485,7 +485,7 @@ export const landingCopy: Record<Language, LandingContent> = {
       legal: "Legal",
       productLinks: [["Recursos", "/upload"], ["Templates", "/#templates"], ["Como funciona", "/#how-it-works"], ["Histórico", "/history"], ["Preços", "/upload"]],
       companyLinks: ["Sobre", "Blog", "Carreiras", "Imprensa"],
-      legalLinks: ["Privacidade", "Termos de serviço", "Política de cookies", "RGPD"],
+      legalLinks: [["Privacidade", "/privacy"], ["Termos de serviço", "/terms"], ["Política de cookies", "/cookies"]],
       rights: "Todos os direitos reservados.",
       built: "Powered by fal.ai · Feito com Next.js",
     },
@@ -563,7 +563,7 @@ export const landingCopy: Record<Language, LandingContent> = {
       legal: "Rechtliches",
       productLinks: [["Features", "/upload"], ["Templates", "/#templates"], ["So funktioniert's", "/#how-it-works"], ["Verlauf", "/history"], ["Preise", "/upload"]],
       companyLinks: ["Über uns", "Blog", "Karriere", "Presse"],
-      legalLinks: ["Datenschutz", "Nutzungsbedingungen", "Cookie-Richtlinie", "DSGVO"],
+      legalLinks: [["Datenschutz", "/privacy"], ["Nutzungsbedingungen", "/terms"], ["Cookie-Richtlinie", "/cookies"]],
       rights: "Alle Rechte vorbehalten.",
       built: "Powered by fal.ai · Gebaut mit Next.js",
     },

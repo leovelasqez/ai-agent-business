@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
 import { Suspense } from "react";
 import { cookies } from "next/headers";
 import { LanguageProvider } from "@/lib/language-context";
@@ -9,17 +8,6 @@ import type { Language } from "@/lib/i18n";
 import "./globals.css";
 
 const SUPPORTED_LANGS: Language[] = ["en", "es", "fr", "pt", "de"];
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700", "800", "900"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
 
 export const metadata: Metadata = {
   title: "MockForge — AI Product Mockups in Seconds",
@@ -42,7 +30,7 @@ export default async function RootLayout({
     <html
       suppressHydrationWarning
       lang={initialLanguage}
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className="h-full antialiased"
     >
       <head>
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />

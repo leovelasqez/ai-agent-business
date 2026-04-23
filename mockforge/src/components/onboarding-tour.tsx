@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { startTransition, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
 const TOUR_KEY = "mockforge-tour-done";
@@ -45,10 +45,12 @@ export function OnboardingTour() {
   const router = useRouter();
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
-    if (!localStorage.getItem(TOUR_KEY)) {
-      setVisible(true);
-    }
+    const shouldShow = !window.localStorage.getItem(TOUR_KEY);
+    const timer = window.setTimeout(() => {
+      setVisible(shouldShow);
+    }, 0);
+
+    return () => window.clearTimeout(timer);
   }, []);
 
   function dismiss() {
@@ -61,7 +63,9 @@ export function OnboardingTour() {
       setStep((s) => s + 1);
     } else {
       dismiss();
-      router.push("/upload");
+      startTransition(() => {
+        router.push("/upload");
+      });
     }
   }
 

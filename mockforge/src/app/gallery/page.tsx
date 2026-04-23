@@ -15,7 +15,7 @@ interface GalleryItem {
 }
 
 export default function GalleryPage() {
-  const { t } = useLanguage();
+  useLanguage();
   const [items, setItems] = useState<GalleryItem[]>([]);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);

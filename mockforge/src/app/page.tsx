@@ -538,10 +538,10 @@ export default function Home() {
                 {c.footer.legal}
               </div>
               <div className="space-y-3">
-                {c.footer.legalLinks.map((label) => (
+                {c.footer.legalLinks.map(([label, href]) => (
                   <div key={label}>
                     <Link
-                      href="/"
+                      href={href}
                       className="text-sm text-white/30 transition hover:text-white"
                     >
                       {label}

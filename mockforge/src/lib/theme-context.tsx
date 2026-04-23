@@ -14,13 +14,17 @@ const ThemeContext = createContext<ThemeContextValue | null>(null);
 
 const STORAGE_KEY = "mf_theme";
 
-function getInitialTheme(): Theme {
-  if (typeof document === "undefined") return "dark";
-  return document.documentElement.classList.contains("dark") ? "dark" : "light";
-}
-
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setThemeState] = useState<Theme>(getInitialTheme);
+  const [theme, setThemeState] = useState<Theme>("dark");
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      const nextTheme = document.documentElement.classList.contains("dark") ? "dark" : "light";
+      setThemeState(nextTheme);
+    }, 0);
+
+    return () => window.clearTimeout(timer);
+  }, []);
 
   useEffect(() => {
     const root = document.documentElement;

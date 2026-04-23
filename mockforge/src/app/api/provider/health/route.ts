@@ -5,6 +5,8 @@ import { jsonWithRequestId, getRequestId } from "@/lib/logger";
 
 export async function GET(request: Request) {
   const requestId = getRequestId(request);
+  const healthSecret = process.env.PROVIDER_HEALTH_SECRET;
+  const isAuthorized = !healthSecret || request.headers.get("x-provider-health-secret") === healthSecret;
   const provider = process.env.IMAGE_PROVIDER || "fal";
   const falConfigured = provider === "fal" ? Boolean(process.env.FAL_KEY) : false;
 
@@ -33,7 +35,7 @@ export async function GET(request: Request) {
       ok,
       requestId,
       checks,
-      metrics: getMetrics(),
+      metrics: isAuthorized ? getMetrics() : undefined,
     },
     requestId,
     { status: ok ? 200 : 503 },

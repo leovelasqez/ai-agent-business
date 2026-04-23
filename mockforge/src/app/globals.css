@@ -2,6 +2,8 @@
 
 :root,
 :root.light {
+  --font-geist-sans: "Segoe UI", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --font-geist-mono: "SFMono-Regular", "SF Mono", Consolas, "Liberation Mono", Menlo, monospace;
   --background: #ffffff;
   --foreground: #0a0a0a;
   --surface: #f4f4f5;

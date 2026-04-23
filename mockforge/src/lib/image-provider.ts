@@ -33,6 +33,21 @@ export interface RunGenerationResult {
 // Safe filename: no path separators, no dots leading a segment
 const SAFE_UPLOAD_FILENAME = /^[a-zA-Z0-9][\w.-]*$/;
 
+export function getConfiguredImageProvider(): string {
+  return process.env.IMAGE_PROVIDER || "fal";
+}
+
+export function assertImageProviderReady(provider = getConfiguredImageProvider()): string {
+  if (provider === "fal") {
+    if (!process.env.FAL_KEY) {
+      throw new Error("FAL_KEY is missing");
+    }
+    return provider;
+  }
+
+  throw new Error(`Unsupported IMAGE_PROVIDER: ${provider}`);
+}
+
 export function validateSourceImageUrl(url: string): void {
   // Local upload path
   if (url.startsWith("/api/uploads/")) {
@@ -61,7 +76,7 @@ export async function runGeneration(input: RunGenerationInput): Promise<RunGener
     validateSourceImageUrl(input.sourceImageUrl);
   }
 
-  const provider = process.env.IMAGE_PROVIDER || "fal";
+  const provider = assertImageProviderReady();
 
   if (provider === "fal") {
     const { runFalGeneration } = await import("@/lib/providers/fal");

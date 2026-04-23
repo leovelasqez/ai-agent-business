@@ -6,9 +6,13 @@ import { validateUploadedImage } from "@/lib/upload-validation";
 
 export async function POST(request: Request) {
   const debugSecret = process.env.DEBUG_UPLOAD_SECRET;
-  if (process.env.NODE_ENV === "production" || debugSecret) {
+  if (process.env.NODE_ENV === "production" && !debugSecret) {
+    return NextResponse.json({ ok: false, error: "NOT_FOUND" }, { status: 404 });
+  }
+
+  if (debugSecret) {
     const provided = request.headers.get("x-debug-upload-secret") ?? "";
-    if (!debugSecret || provided !== debugSecret) {
+    if (provided !== debugSecret) {
       return NextResponse.json({ ok: false, error: "UNAUTHORIZED" }, { status: 401 });
     }
   }

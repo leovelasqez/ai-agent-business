@@ -2,11 +2,11 @@ import { checkRateLimit } from "@/lib/rate-limiter";
 import { mapProviderError } from "@/lib/errors";
 import { enqueueGenerationJob, type GenerationJobInput } from "@/lib/job-queue";
 import { getRequestId, jsonWithRequestId, log } from "@/lib/logger";
-import { runGeneration } from "@/lib/image-provider";
+import { runGeneration, assertImageProviderReady } from "@/lib/image-provider";
 import { insertGeneration } from "@/lib/db/generations";
 import { detectRegion, resolveEffectiveRegion, recordGenerationLatency } from "@/lib/region";
 import { isBudgetExceeded, recordGenerationCost } from "@/lib/cost-control";
-import { maybeGrantFreeTrial, deductCredits, CREDIT_COST } from "@/lib/credits";
+import { maybeGrantFreeTrial, deductCredits, refundCreditsAmount, CREDIT_COST } from "@/lib/credits";
 import { getTrustedSessionIdFromRequest } from "@/lib/session";
 import { getServerUser } from "@/lib/supabase-server";
 import { withSpan, getTraceId } from "@/lib/tracing";
@@ -43,11 +43,11 @@ export async function POST(request: Request) {
   const variantRaw = body?.variant;
   const variant: "a" | "b" | "c" | "d" =
     variantRaw === "b" ? "b" : variantRaw === "c" ? "c" : variantRaw === "d" ? "d" : "a";
-  const provider = process.env.IMAGE_PROVIDER || "fal";
   const asyncRequested = body?.async === true;
   const region = resolveEffectiveRegion(detectRegion(request));
   const bgColor: string | undefined = body?.bgColor;
   const bgTexture: string | undefined = body?.bgTexture;
+  let provider: string;
 
   // Kill switch: reject if daily/monthly budget is exceeded
   const budget = isBudgetExceeded();
@@ -59,29 +59,15 @@ export async function POST(request: Request) {
     );
   }
 
-  // Credits: auto-grant free trial then check balance
-  await maybeGrantFreeTrial(sessionId);
-  const cost = CREDIT_COST[variant] ?? 1;
-  const { ok: hasCredits, balance: currentBalance } = await deductCredits(sessionId, variant);
-  if (!hasCredits) {
+  try {
+    provider = assertImageProviderReady();
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Image provider is not ready.";
     return jsonWithRequestId(
       {
         ok: false,
-        error: "INSUFFICIENT_CREDITS",
-        message: "You have no credits left. Purchase a pack to continue generating.",
-        data: { balance: currentBalance, cost },
-      },
-      requestId,
-      { status: 402 },
-    );
-  }
-
-  if (provider === "fal" && !process.env.FAL_KEY) {
-    return jsonWithRequestId(
-      {
-        ok: false,
-        error: "FAL_KEY is missing",
-        message: "Add FAL_KEY to run live generations with fal.ai.",
+        error: "PROVIDER_NOT_READY",
+        message: message === "FAL_KEY is missing" ? "Add FAL_KEY to run live generations with fal.ai." : message,
       },
       requestId,
       { status: 500 },
@@ -125,6 +111,22 @@ export async function POST(request: Request) {
       },
       requestId,
       { status: 202 },
+    );
+  }
+
+  await maybeGrantFreeTrial(sessionId);
+  const cost = CREDIT_COST[variant] ?? 1;
+  const { ok: hasCredits, balance: currentBalance } = await deductCredits(sessionId, variant);
+  if (!hasCredits) {
+    return jsonWithRequestId(
+      {
+        ok: false,
+        error: "INSUFFICIENT_CREDITS",
+        message: "You have no credits left. Purchase a pack to continue generating.",
+        data: { balance: currentBalance, cost },
+      },
+      requestId,
+      { status: 402 },
     );
   }
 
@@ -177,6 +179,7 @@ export async function POST(request: Request) {
       requestId,
     );
   } catch (error) {
+    await refundCreditsAmount(sessionId, cost, "refund_generate_failed");
     const message = error instanceof Error ? error.message : "Unknown provider error";
     const friendlyMessage = mapProviderError(message);
 

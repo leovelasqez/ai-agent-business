@@ -4,6 +4,8 @@ import { runGeneration } from "@/lib/image-provider";
 import { incrementMetric } from "@/lib/metrics";
 import { recordGenerationLatency } from "@/lib/region";
 import { withSpan } from "@/lib/tracing";
+import { maybeGrantFreeTrial, deductCredits, refundCreditsAmount } from "@/lib/credits";
+import { recordGenerationCost } from "@/lib/cost-control";
 import type { GenerationJobInput, GenerationJobState } from "@/lib/job-queue-types";
 
 export type { GenerationJobInput, GenerationJobState };
@@ -52,8 +54,24 @@ export function enqueueGenerationJob(input: GenerationJobInput) {
     const processing: GenerationJobState = { ...current, status: "processing", updatedAt: new Date().toISOString() };
     setJob(processing);
     const startMs = Date.now();
+    let creditsCharged = false;
+    let chargedCost = 0;
+    const sessionId = input.sessionId;
+    const variant = input.variant ?? "a";
 
     try {
+      if (!sessionId) {
+        throw new Error("SESSION_REQUIRED");
+      }
+
+      await maybeGrantFreeTrial(sessionId);
+      const charge = await deductCredits(sessionId, variant);
+      if (!charge.ok) {
+        throw new Error("INSUFFICIENT_CREDITS");
+      }
+      creditsCharged = true;
+      chargedCost = charge.cost;
+
       const result = await withSpan("generation.job.run", () => runGeneration({ ...input, region: input.region }), {
         "job.id": id,
         "job.preset": input.preset,
@@ -99,7 +117,11 @@ export function enqueueGenerationJob(input: GenerationJobInput) {
         },
       });
       incrementMetric("generationCompleted");
+      recordGenerationCost(result.variant);
     } catch (error) {
+      if (creditsCharged && sessionId) {
+        await refundCreditsAmount(sessionId, chargedCost, "refund_generation_job_failed");
+      }
       setJob({
         id,
         status: "failed",

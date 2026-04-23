@@ -27,6 +27,8 @@ export default function DebugUploadPage() {
   const [responseText, setResponseText] = useState<string>("No request sent yet.");
   const [clientDebug, setClientDebug] = useState<string>("No inspection yet.");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const isDisabledInProduction =
+    process.env.NODE_ENV === "production" && !process.env.NEXT_PUBLIC_ENABLE_DEBUG_UPLOAD_PAGE;
 
   const inspectClientState = () => {
     const input = fileInputRef.current;
@@ -74,6 +76,19 @@ export default function DebugUploadPage() {
       setIsSubmitting(false);
     }
   };
+
+  if (isDisabledInProduction) {
+    return (
+      <main className="min-h-screen bg-white px-6 py-10 text-black">
+        <div className="mx-auto max-w-2xl rounded-2xl border border-neutral-200 bg-neutral-50 p-8">
+          <h1 className="text-2xl font-bold">Debug upload disabled</h1>
+          <p className="mt-3 text-sm text-neutral-600">
+            This internal page is not enabled in production.
+          </p>
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="min-h-screen bg-white px-6 py-10 text-black">

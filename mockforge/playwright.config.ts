@@ -7,7 +7,7 @@ export default defineConfig({
     timeout: 10_000,
   },
   use: {
-    baseURL: 'http://127.0.0.1:3003',
+    baseURL: 'http://127.0.0.1:3013',
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
@@ -18,4 +18,10 @@ export default defineConfig({
       use: { ...devices['Desktop Chrome'] },
     },
   ],
+  webServer: {
+    command: 'SESSION_SECRET=playwright-session-secret npm run dev -- --hostname 127.0.0.1 --port 3013',
+    url: 'http://127.0.0.1:3013',
+    reuseExistingServer: !process.env.CI,
+    timeout: 120_000,
+  },
 });

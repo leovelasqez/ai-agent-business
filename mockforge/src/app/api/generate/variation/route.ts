@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { checkRateLimit } from "@/lib/rate-limiter";
 import { isBudgetExceeded, recordGenerationCost } from "@/lib/cost-control";
-import { maybeGrantFreeTrial, deductCredits, CREDIT_COST } from "@/lib/credits";
-import { runGeneration } from "@/lib/image-provider";
+import { maybeGrantFreeTrial, deductCredits, refundCreditsAmount, CREDIT_COST } from "@/lib/credits";
+import { runGeneration, assertImageProviderReady } from "@/lib/image-provider";
 import { insertGeneration } from "@/lib/db/generations";
 import { getTrustedSessionIdFromRequest } from "@/lib/session";
 import type { PresetId } from "@/lib/presets";
@@ -70,11 +70,26 @@ export async function POST(request: Request) {
 
   const v: GenerationVariant = variant === "b" ? "b" : variant === "c" ? "c" : variant === "d" ? "d" : "a";
 
+  try {
+    assertImageProviderReady();
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Image provider is not ready.";
+    return NextResponse.json(
+      {
+        ok: false,
+        error: "PROVIDER_NOT_READY",
+        message: message === "FAL_KEY is missing" ? "Add FAL_KEY to run live generations." : message,
+      },
+      { status: 500 },
+    );
+  }
+
   await maybeGrantFreeTrial(sessionId);
+  const cost = CREDIT_COST[v] ?? 1;
   const { ok: hasCredits, balance } = await deductCredits(sessionId, v);
   if (!hasCredits) {
     return NextResponse.json(
-      { ok: false, error: "INSUFFICIENT_CREDITS", message: "No credits left.", data: { balance, cost: CREDIT_COST[v] ?? 1 } },
+      { ok: false, error: "INSUFFICIENT_CREDITS", message: "No credits left.", data: { balance, cost } },
       { status: 402 },
     );
   }
@@ -124,6 +139,7 @@ export async function POST(request: Request) {
       },
     });
   } catch (err) {
+    await refundCreditsAmount(sessionId, cost, "refund_variation_failed");
     const message = err instanceof Error ? err.message : "Variation generation failed";
     return NextResponse.json({ ok: false, message }, { status: 500 });
   }

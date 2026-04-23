@@ -473,6 +473,8 @@ export function ResultsView({
     defaultVariantLabel,
     customModel,
     customPrompt,
+    bgColor,
+    bgTexture,
     friendlyError,
   ]);
 

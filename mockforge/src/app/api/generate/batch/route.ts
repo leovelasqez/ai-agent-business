@@ -1,10 +1,10 @@
 import { checkRateLimit } from "@/lib/rate-limiter";
 import { mapProviderError } from "@/lib/errors";
 import { getRequestId, jsonWithRequestId, log } from "@/lib/logger";
-import { runGeneration } from "@/lib/image-provider";
+import { runGeneration, assertImageProviderReady } from "@/lib/image-provider";
 import { insertGeneration } from "@/lib/db/generations";
 import { isBudgetExceeded, recordGenerationCost } from "@/lib/cost-control";
-import { maybeGrantFreeTrial, deductCreditsAmount, CREDIT_COST } from "@/lib/credits";
+import { maybeGrantFreeTrial, deductCreditsAmount, refundCreditsAmount, CREDIT_COST } from "@/lib/credits";
 import { getTrustedSessionIdFromRequest } from "@/lib/session";
 import { getServerUser } from "@/lib/supabase-server";
 import type { PresetId } from "@/lib/presets";
@@ -68,9 +68,16 @@ export async function POST(request: Request) {
     );
   }
 
-  if (!process.env.FAL_KEY) {
+  try {
+    assertImageProviderReady();
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Image provider is not ready.";
     return jsonWithRequestId(
-      { ok: false, error: "FAL_KEY is missing", message: "Add FAL_KEY to run live generations." },
+      {
+        ok: false,
+        error: "PROVIDER_NOT_READY",
+        message: message === "FAL_KEY is missing" ? "Add FAL_KEY to run live generations." : message,
+      },
       requestId,
       { status: 500 },
     );
@@ -155,6 +162,11 @@ export async function POST(request: Request) {
       error: mapProviderError(r.reason instanceof Error ? r.reason.message : String(r.reason)),
     }));
 
+  const failedCost = failed.reduce((sum, item) => sum + (CREDIT_COST[item.variant] ?? 1), 0);
+  if (failedCost > 0) {
+    await refundCreditsAmount(sessionId, failedCost, "refund_batch_failed_variants");
+  }
+
   if (succeeded.length === 0) {
     log("error", "batch generation: all variants failed", {
       requestId,
@@ -186,7 +198,12 @@ export async function POST(request: Request) {
         results: succeeded,
         failed,
         isBatch: true,
-        pricing: { type: "batch", cost: totalCost },
+        pricing: {
+          type: "batch",
+          policy: "charged_upfront_refund_failed",
+          chargedCost: totalCost - failedCost,
+          refundedCost: failedCost,
+        },
       },
     },
     requestId,

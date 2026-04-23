@@ -12,11 +12,13 @@ import { getMetrics } from "@/lib/metrics";
 
 export function GET(request: Request) {
   const adminSecret = process.env.ADMIN_SECRET;
-  if (adminSecret) {
-    const provided = request.headers.get("x-admin-secret") ?? "";
-    if (provided !== adminSecret) {
-      return NextResponse.json({ ok: false, error: "UNAUTHORIZED" }, { status: 401 });
-    }
+  if (!adminSecret) {
+    return NextResponse.json({ ok: false, error: "ADMIN_SECRET_NOT_CONFIGURED" }, { status: 403 });
+  }
+
+  const provided = request.headers.get("x-admin-secret") ?? "";
+  if (provided !== adminSecret) {
+    return NextResponse.json({ ok: false, error: "UNAUTHORIZED" }, { status: 401 });
   }
 
   const costs = getCostSnapshot();
