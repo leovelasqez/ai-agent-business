@@ -163,15 +163,21 @@ Nota:
 
 ### 4.1 Legal y cumplimiento mínimo
 
-- [ ] Crear páginas reales para:
-  - [ ] Privacy Policy
-  - [ ] Terms of Service
-  - [ ] Cookie Policy
-- [ ] Reemplazar links placeholder del footer que hoy apuntan a `/`.
-- [ ] Definir contacto de soporte visible.
-- [ ] Definir política de reembolsos.
-- [ ] Definir política de retención/borrado de imágenes y generaciones.
-- [ ] Exponer un flujo real para borrado si se va a prometer GDPR/erasure.
+- [x] Crear páginas reales para:
+  - [x] Privacy Policy (`/privacy`)
+  - [x] Terms of Service (`/terms`)
+  - [x] Cookie Policy (`/cookies`)
+- [x] Reemplazar links placeholder del footer que hoy apuntan a `/`.
+  → Ahora apuntan a `/privacy`, `/terms`, `/cookies` en todos los idiomas.
+- [x] Definir contacto de soporte visible.
+  → `support@mockforge.ai`
+- [x] Definir política de reembolsos.
+  → 14 días, <50% de créditos usados. En Terms of Service.
+- [x] Definir política de retención/borrado de imágenes y generaciones.
+  → Borrado dentro de 30 días. En Privacy Policy.
+- [~] Exponer un flujo real para borrado si se va a prometer GDPR/erasure.
+  → Los usuarios pueden borrar generaciones desde `/history`. Falta endpoint automático de account deletion.
+  → Contacto: support@mockforge.ai para solicitudes GDPR.
 
 Definition of done:
 - No hay claims legales o de privacidad sin implementación mínima real.
