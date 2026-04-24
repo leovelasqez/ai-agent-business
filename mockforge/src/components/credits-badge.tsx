@@ -19,16 +19,16 @@ export function CreditsBadge() {
 
   const low = balance <= 1;
   const labels = {
-    en: { credit: "credit", credits: "credits", low: "low" },
-    es: { credit: "crédito", credits: "créditos", low: "poco" },
-    fr: { credit: "crédit", credits: "crédits", low: "faible" },
-    pt: { credit: "crédito", credits: "créditos", low: "baixo" },
-    de: { credit: "Kredit", credits: "Kredite", low: "wenig" },
+    en: { credit: "credit", credits: "credits", low: "buy more" },
+    es: { credit: "crédito", credits: "créditos", low: "comprar" },
+    fr: { credit: "crédit", credits: "crédits", low: "acheter" },
+    pt: { credit: "crédito", credits: "créditos", low: "comprar" },
+    de: { credit: "Kredit", credits: "Kredite", low: "kaufen" },
   }[language];
 
   return (
     <Link
-      href="/upload"
+      href={low ? "/billing" : "/upload"}
       className={`hidden items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold transition md:flex ${
         low
           ? "border-amber-500/40 bg-amber-500/10 text-amber-300 hover:bg-amber-500/20"

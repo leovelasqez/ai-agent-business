@@ -35,6 +35,18 @@ import type { GenerationVariant } from "@/lib/image-provider";
 export async function POST(request: Request) {
   const requestId = getRequestId(request);
 
+  if (process.env.MOCKFORGE_PUBLIC_API_ENABLED !== "true") {
+    return jsonWithRequestId(
+      {
+        ok: false,
+        error: "API_DISABLED",
+        message: "The public API is currently in private beta.",
+      },
+      requestId,
+      { status: 404 },
+    );
+  }
+
   // ── Auth ──────────────────────────────────────────────────────────────────
   const authorization = request.headers.get("authorization") ?? "";
   const rawKey = authorization.startsWith("Bearer ") ? authorization.slice(7).trim() : "";

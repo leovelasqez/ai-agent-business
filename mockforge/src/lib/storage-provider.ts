@@ -257,6 +257,69 @@ async function withLocalFallback<T extends StorageSaveResult>(
   }
 }
 
+// ---- Cleanup helpers ----
+
+interface StorageListEntry {
+  name: string;
+  id?: string | null;
+  metadata?: { size?: number } | null;
+}
+
+async function listSupabasePaths(bucket: StorageBucket, prefix = ""): Promise<string[]> {
+  const supabase = getSupabaseServiceClient();
+  const paths: string[] = [];
+  const { data, error } = await supabase.storage.from(bucket).list(prefix, { limit: 1000 });
+
+  if (error) {
+    throw new Error(`Supabase Storage list failed (${bucket}/${prefix}): ${error.message}`);
+  }
+
+  for (const entry of (data ?? []) as StorageListEntry[]) {
+    const path = prefix ? `${prefix}/${entry.name}` : entry.name;
+    const looksLikeFolder = !entry.id && !entry.metadata?.size;
+
+    if (looksLikeFolder) {
+      paths.push(...await listSupabasePaths(bucket, path));
+    } else {
+      paths.push(path);
+    }
+  }
+
+  return paths;
+}
+
+function isDatedStoragePathOlderThan(path: string, cutoffMs: number): boolean {
+  const match = path.match(/^(\d{4}-\d{2}-\d{2})\//);
+  if (!match) return false;
+  return new Date(`${match[1]}T00:00:00.000Z`).getTime() < cutoffMs;
+}
+
+/** Delete dated Supabase Storage objects older than maxAgeMs from both MockForge buckets. */
+export async function cleanOldSupabaseStorageObjects(maxAgeMs: number): Promise<number> {
+  if (!isSupabaseStorageReady()) return 0;
+
+  const cutoffMs = Date.now() - maxAgeMs;
+  let deleted = 0;
+
+  for (const bucket of Object.values(STORAGE_BUCKETS)) {
+    const paths = (await listSupabasePaths(bucket)).filter((path) =>
+      isDatedStoragePathOlderThan(path, cutoffMs),
+    );
+
+    for (let i = 0; i < paths.length; i += 100) {
+      const batch = paths.slice(i, i + 100);
+      if (batch.length === 0) continue;
+      const { error } = await getSupabaseServiceClient().storage.from(bucket).remove(batch);
+      if (error) {
+        throw new Error(`Supabase Storage delete failed (${bucket}): ${error.message}`);
+      }
+      deleted += batch.length;
+    }
+  }
+
+  return deleted;
+}
+
 // ---- Public API ----
 
 /** Save a user-uploaded source image. */

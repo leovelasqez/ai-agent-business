@@ -70,6 +70,9 @@ FAL_MODEL_C=fal-ai/flux-pro/kontext
 NEXT_PUBLIC_POSTHOG_KEY=...
 SENTRY_DSN=...
 
+# API pública beta
+MOCKFORGE_PUBLIC_API_ENABLED=false
+
 # CDN (Bunny)
 BUNNY_STORAGE_API_KEY=...
 BUNNY_STORAGE_ZONE=...
@@ -117,7 +120,7 @@ Soporta 5 idiomas: EN, ES, FR, PT, DE (detección automática por `Accept-Langua
 | `POST /api/generate/upscale` | Upscale con clarity-upscaler |
 | `POST /api/generate/variation` | "Más como este" |
 | `POST /api/generate/video` | Video 5s con kling-video |
-| `POST /api/v1/generate` | API pública (Bearer token) |
+| `POST /api/v1/generate` | API pública beta (Bearer token; disabled unless `MOCKFORGE_PUBLIC_API_ENABLED=true`) |
 | `GET /api/result/:id` | Resultado por id |
 | `GET /api/gallery` | Galería pública opt-in |
 | `GET /api/credits` | Saldo de créditos |
@@ -150,12 +153,11 @@ npm run test:e2e
 - CI/CD en GitHub Actions (lint + build + tests + e2e)
 - i18n en 5 idiomas
 
-### ⚠️ Stubs / pendientes conocidos
-- **Job queue**: `src/lib/job-queue.ts` usa `Map` en memoria — NO usa BullMQ/Inngest. Los jobs se pierden al reiniciar el servidor
-- **Auth**: solo sesiones anónimas con cookie `mf_session`. Sin NextAuth/Clerk
-- **Multi-región**: hay detección de región, pero los jobs no se distribuyen
-- **Observabilidad**: Sentry + request IDs sí, distributed tracing no
-- **Form refactor**: `mockup-upload-form.tsx` sigue con ~13 `useState` en lugar de `useReducer`
+### ⚠️ Pendientes conocidos
+- **Job queue**: DB-backed con `generation_jobs`, pero cada instancia procesa sus propios jobs y mantiene cache `Map` en memoria. Suficiente para launch controlado; reemplazar por worker/queue durable antes de escala seria.
+- **API pública**: `/api/v1/generate` está detrás de `MOCKFORGE_PUBLIC_API_ENABLED=true`. Mantenerla apagada para launch salvo que provisioning, límites y docs estén cerrados.
+- **Operación prod**: confirmar Sentry/PostHog, alertas, backups Supabase y smoke Stripe end-to-end en el entorno final.
+- **Dominio custom**: pendiente de decisión/configuración externa.
 
 ## Deploy
 

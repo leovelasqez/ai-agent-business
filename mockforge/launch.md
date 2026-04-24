@@ -103,7 +103,8 @@ Definition of done:
   - [x] `supabase`
 - [x] Evitar depender del filesystem local como backend principal en producción.
 - [x] Confirmar buckets y permisos de storage.
-- [ ] Confirmar lifecycle/cleanup de assets viejos.
+- [x] Confirmar lifecycle/cleanup de assets viejos.
+  → `/api/admin/cleanup` purga uploads locales y objetos Supabase Storage fechados con más de 7 días.
 
 Nota:
 - Deploy automático en push a `main`. Último deploy: Ready, 36s.
@@ -230,8 +231,10 @@ Si `/api/v1/generate` sale en el launch:
 
 Si `/api/v1/generate` no sale en el launch:
 
-- [ ] Marcarlo como beta interna o deshabilitarlo.
-- [ ] Sacarlo del marketing y del checklist público de release.
+- [x] Marcarlo como beta interna o deshabilitarlo.
+  → Deshabilitado por defecto salvo `MOCKFORGE_PUBLIC_API_ENABLED=true`.
+- [x] Sacarlo del marketing y del checklist público de release.
+  → README lo marca como beta gated, no como feature pública de launch.
 
 ## 6. Validación Final De Release
 
@@ -254,11 +257,14 @@ Si `/api/v1/generate` no sale en el launch:
 
 ### 6.2 Checklist técnico final
 
-- [ ] Variables de entorno revisadas
+- [~] Variables de entorno revisadas
+  → `.env.example` incluye Stripe, Sentry/PostHog y gate de API pública. Falta cargar/validar secretos reales en Vercel.
 - [ ] Secrets cargados correctamente
 - [ ] Migraciones aplicadas
-- [ ] Build de producción validado
-- [ ] Webhook de Stripe validado
+- [x] Build de producción validado
+  → `npm run build` OK local el 2026-04-24.
+- [~] Webhook de Stripe validado
+  → Tests locales OK. Falta webhook real contra Stripe/Vercel.
 - [ ] Sentry recibiendo eventos
 - [ ] No hay endpoints internos expuestos
 - [ ] No hay placeholders legales visibles
