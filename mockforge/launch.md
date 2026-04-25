@@ -135,6 +135,7 @@ Nota:
 - [ ] Configurar `STRIPE_WEBHOOK_SECRET`.
 - [ ] Configurar `STRIPE_PRICE_SINGLE_PACK`.
 - [ ] Configurar `STRIPE_PRICE_BUNDLE`.
+  → Producción verificada 2026-04-25: faltan las 4 vars; checkout devuelve `PAYMENTS_NOT_CONFIGURED`.
 - [ ] Probar compra end-to-end en modo real o staging equivalente.
 - [ ] Verificar:
   - [ ] redirect a checkout
@@ -147,6 +148,7 @@ Nota:
 ### 3.4 Observabilidad y operación
 
 - [ ] Configurar Sentry en producción.
+  → Producción verificada 2026-04-25: `sentryConfigured=false`.
 - [ ] Configurar PostHog si se va a usar desde el día 1.
 - [ ] Confirmar logs estructurados accesibles para incidentes.
 - [ ] Definir owner operativo para:
@@ -266,7 +268,8 @@ Si `/api/v1/generate` no sale en el launch:
 - [~] Webhook de Stripe validado
   → Tests locales OK. Falta webhook real contra Stripe/Vercel.
 - [ ] Sentry recibiendo eventos
-- [ ] No hay endpoints internos expuestos
+- [x] No hay endpoints internos expuestos
+  → `/api/admin/costs` requiere auth, `/api/debug/upload` 404 en producción y `/debug/upload` ahora devuelve 404 si no está explícitamente habilitado.
 - [ ] No hay placeholders legales visibles
 - [ ] No hay errores críticos abiertos de launch
 

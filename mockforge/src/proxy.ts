@@ -21,6 +21,14 @@ function resolveLang(acceptLanguage: string | null): SupportedLang {
 }
 
 export async function proxy(request: NextRequest) {
+  if (
+    process.env.NODE_ENV === "production" &&
+    !process.env.NEXT_PUBLIC_ENABLE_DEBUG_UPLOAD_PAGE &&
+    (request.nextUrl.pathname === "/debug/upload" || request.nextUrl.pathname === "/api/debug/upload")
+  ) {
+    return NextResponse.json({ ok: false, error: "NOT_FOUND" }, { status: 404 });
+  }
+
   // --- Supabase auth session refresh ---
   let supabaseResponse = NextResponse.next({ request });
 

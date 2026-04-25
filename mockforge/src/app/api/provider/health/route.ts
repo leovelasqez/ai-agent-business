@@ -10,6 +10,12 @@ export async function GET(request: Request) {
   const provider = process.env.IMAGE_PROVIDER || "fal";
   const falConfigured = provider === "fal" ? Boolean(process.env.FAL_KEY) : false;
 
+  const stripeSecretConfigured = Boolean(process.env.STRIPE_SECRET_KEY);
+  const stripeWebhookConfigured = Boolean(process.env.STRIPE_WEBHOOK_SECRET);
+  const stripePricesConfigured = Boolean(
+    process.env.STRIPE_PRICE_SINGLE_PACK && process.env.STRIPE_PRICE_BUNDLE,
+  );
+
   const checks = {
     provider: {
       name: provider,
@@ -20,11 +26,18 @@ export async function GET(request: Request) {
       backend: getStorageBackend(),
       supabaseReady: isSupabaseStorageReady(),
     },
+    payments: {
+      stripeConfigured: stripeSecretConfigured,
+      webhookConfigured: stripeWebhookConfigured,
+      pricesConfigured: stripePricesConfigured,
+      enabled: stripeSecretConfigured && stripeWebhookConfigured && stripePricesConfigured,
+    },
     observability: {
       sentryConfigured: isSentryConfigured(),
+      posthogConfigured: Boolean(process.env.NEXT_PUBLIC_POSTHOG_KEY),
     },
     queue: {
-      mode: "in-memory",
+      mode: "db-backed-with-in-process-worker",
     },
   };
 
