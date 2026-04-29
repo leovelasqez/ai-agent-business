@@ -9,6 +9,7 @@ import { NextResponse } from "next/server";
 import { getCostSnapshot } from "@/lib/cost-control";
 import { getRegionStats } from "@/lib/region";
 import { getMetrics } from "@/lib/metrics";
+import { isAuthorizedSecret } from "@/lib/admin-auth";
 
 export function GET(request: Request) {
   const adminSecret = process.env.ADMIN_SECRET;
@@ -16,8 +17,7 @@ export function GET(request: Request) {
     return NextResponse.json({ ok: false, error: "ADMIN_SECRET_NOT_CONFIGURED" }, { status: 403 });
   }
 
-  const provided = request.headers.get("x-admin-secret") ?? "";
-  if (provided !== adminSecret) {
+  if (!isAuthorizedSecret(request, adminSecret, "x-admin-secret")) {
     return NextResponse.json({ ok: false, error: "UNAUTHORIZED" }, { status: 401 });
   }
 

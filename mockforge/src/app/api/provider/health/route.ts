@@ -2,11 +2,15 @@ import { getMetrics } from "@/lib/metrics";
 import { isSentryConfigured } from "@/lib/sentry";
 import { getStorageBackend, isSupabaseStorageReady } from "@/lib/storage-provider";
 import { jsonWithRequestId, getRequestId } from "@/lib/logger";
+import { isAuthorizedSecret } from "@/lib/admin-auth";
 
 export async function GET(request: Request) {
   const requestId = getRequestId(request);
   const healthSecret = process.env.PROVIDER_HEALTH_SECRET;
-  const isAuthorized = !healthSecret || request.headers.get("x-provider-health-secret") === healthSecret;
+  const isProduction = process.env.NODE_ENV === "production";
+  const isAuthorized = healthSecret
+    ? isAuthorizedSecret(request, healthSecret, "x-provider-health-secret")
+    : !isProduction;
   const provider = process.env.IMAGE_PROVIDER || "fal";
   const falConfigured = provider === "fal" ? Boolean(process.env.FAL_KEY) : false;
 
@@ -43,12 +47,16 @@ export async function GET(request: Request) {
 
   const ok = checks.provider.configured;
 
+  if (!isAuthorized) {
+    return jsonWithRequestId({ ok, requestId }, requestId, { status: ok ? 200 : 503 });
+  }
+
   return jsonWithRequestId(
     {
       ok,
       requestId,
       checks,
-      metrics: isAuthorized ? getMetrics() : undefined,
+      metrics: getMetrics(),
     },
     requestId,
     { status: ok ? 200 : 503 },

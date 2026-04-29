@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { cleanOldUploads } from "@/lib/file-storage";
 import { cleanOldSupabaseStorageObjects } from "@/lib/storage-provider";
+import { isAuthorizedBearer } from "@/lib/admin-auth";
 
 const MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 
@@ -14,8 +15,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const authHeader = request.headers.get("authorization");
-  if (authHeader !== `Bearer ${secret}`) {
+  if (!isAuthorizedBearer(request, secret)) {
     return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
   }
 

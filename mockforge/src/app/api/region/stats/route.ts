@@ -1,8 +1,16 @@
 import { NextResponse } from "next/server";
 import { getRegionStats } from "@/lib/region";
 import { isSupabaseConfigured, getSupabaseServiceClient } from "@/lib/supabase";
+import { isAuthorizedSecret } from "@/lib/admin-auth";
 
-export async function GET() {
+export async function GET(request: Request) {
+  if (
+    process.env.NODE_ENV === "production" &&
+    !isAuthorizedSecret(request, process.env.ADMIN_SECRET, "x-admin-secret")
+  ) {
+    return NextResponse.json({ ok: false, error: "UNAUTHORIZED" }, { status: 401 });
+  }
+
   const inMemory = getRegionStats();
 
   // Enrich with persisted stats from DB when available.
