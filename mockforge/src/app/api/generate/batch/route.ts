@@ -7,6 +7,7 @@ import { isBudgetExceeded, recordGenerationCost } from "@/lib/cost-control";
 import { maybeGrantFreeTrial, deductCreditsAmount, refundCreditsAmount, CREDIT_COST } from "@/lib/credits";
 import { getTrustedSessionIdFromRequest } from "@/lib/session";
 import { getServerUser } from "@/lib/supabase-server";
+import { captureException } from "@/lib/sentry";
 import type { PresetId } from "@/lib/presets";
 import type { GenerationVariant } from "@/lib/image-provider";
 
@@ -90,19 +91,34 @@ export async function POST(request: Request) {
     extra: { preset, variants, sourceImageUrl },
   });
 
-  await maybeGrantFreeTrial(sessionId);
   const totalCost = variants.reduce((sum, variant) => sum + (CREDIT_COST[variant] ?? 1), 0);
-  const { ok: hasCredits, balance } = await deductCreditsAmount(sessionId, totalCost);
-  if (!hasCredits) {
-    return jsonWithRequestId(
-      {
-        ok: false,
-        error: "INSUFFICIENT_CREDITS",
-        message: "You have no credits left. Purchase a pack to continue generating.",
-        data: { balance, cost: totalCost },
-      },
+  try {
+    await maybeGrantFreeTrial(sessionId);
+    const { ok: hasCredits, balance } = await deductCreditsAmount(sessionId, totalCost);
+    if (!hasCredits) {
+      return jsonWithRequestId(
+        {
+          ok: false,
+          error: "INSUFFICIENT_CREDITS",
+          message: "You have no credits left. Purchase a pack to continue generating.",
+          data: { balance, cost: totalCost },
+        },
+        requestId,
+        { status: 402 },
+      );
+    }
+  } catch (error) {
+    captureException(error, { route: "/api/generate/batch", requestId, stage: "credits", preset, variants });
+    log("error", "batch credit check failed", {
       requestId,
-      { status: 402 },
+      route: "/api/generate/batch",
+      method: "POST",
+      extra: { preset, variants, error: error instanceof Error ? error.message : String(error) },
+    });
+    return jsonWithRequestId(
+      { ok: false, error: "CREDIT_SYSTEM_UNAVAILABLE", message: "Credit system unavailable. Try again shortly." },
+      requestId,
+      { status: 503 },
     );
   }
 
@@ -157,10 +173,13 @@ export async function POST(request: Request) {
 
   const failed = results
     .filter((r): r is PromiseRejectedResult => r.status === "rejected")
-    .map((r, i) => ({
-      variant: variants[i],
-      error: mapProviderError(r.reason instanceof Error ? r.reason.message : String(r.reason)),
-    }));
+    .map((r, i) => {
+      captureException(r.reason, { route: "/api/generate/batch", requestId, preset, variant: variants[i] });
+      return {
+        variant: variants[i],
+        error: mapProviderError(r.reason instanceof Error ? r.reason.message : String(r.reason)),
+      };
+    });
 
   const failedCost = failed.reduce((sum, item) => sum + (CREDIT_COST[item.variant] ?? 1), 0);
   if (failedCost > 0) {

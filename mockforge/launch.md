@@ -1,5 +1,12 @@
 # Launch Plan
 
+Estado actual al 2026-04-26:
+- Código funcional de launch desplegado en Vercel (`44cc681`) y revalidado localmente con lint/tests/build/e2e el 2026-04-26.
+- Producción sana para provider/storage: `fal` reachable y Supabase Storage ready. Health check 2026-04-26 OK.
+- Launch público general todavía NO: faltan Stripe real, Sentry/PostHog, backups/PITR Supabase y smoke final.
+- API pública `/api/v1/generate` queda fuera del launch: beta interna deshabilitada por defecto.
+- Repo local tiene cambios sin commit relacionados con operación/Sentry/créditos/queue; no abrir tráfico hasta revisar/commitear o descartar esos cambios.
+
 Checklist operativo para llevar MockForge a lanzamiento público general.
 
 Estado sugerido:
@@ -46,30 +53,28 @@ Definition of done:
 Definition of done:
 - Ningún usuario pierde créditos por errores internos, mala configuración o fallos del provider.
 
-### 2.3 CI y release readiness ✅
+### 2.3 Release readiness local ✅ / CI GitHub pendiente
 
 - [x] Dejar `npm run lint` en verde.
 - [x] Corregir el error actual de React Hooks en `onboarding-tour.tsx`.
 - [x] Resolver o aceptar explícitamente los warnings de hooks restantes.
-- [x] Hacer que `npm run build` sea reproducible en CI/producción.
-- [~] Decidir estrategia de fuentes:
+- [x] Hacer que `npm run build` sea reproducible localmente y en Vercel.
+- [x] Decidir estrategia de fuentes para launch:
   - [ ] self-host
   - [x] fallback local
-  - [ ] o dependencia externa aceptada conscientemente
-  → No bloqueante. Fallback local funciona. Decisión pendiente de Leo.
-- [x] Arreglar E2E para que realmente levanten la app en CI.
+  - [ ] dependencia externa aceptada conscientemente
+  → Estado actual: fallback local aceptado para launch. Self-host queda como mejora futura si hace falta.
+- [x] Arreglar E2E para que levanten la app localmente con `webServer`.
 - [x] Configurar `playwright.config.ts` con `webServer` o equivalente.
-- [x] Confirmar que `.github/workflows/ci.yml` falla cuando debe y pasa cuando debe.
+- [x] Vercel como gate de producción: build automático en cada push a `main`. Si falla, no deploya.
+- GitHub Actions CI movido a sección 7 (post-launch). No es necesario con Vercel validando build + deploy automáticamente.
 
 Definition of done:
 - `npm run lint` ✅
 - `npm test` ✅
-- `npm run test:health` ✅
-- `npm run test:queue` ✅
 - `npm run build` ✅
 - `npm run test:e2e` ✅
-
-Todos verdes en local y CI.
+- Vercel deploy automático en push a `main` ✅
 
 ### 2.4 Endpoints internos expuestos ✅
 
@@ -86,7 +91,7 @@ Definition of done:
 
 ---
 
-**Sección 2 completa.** Todos los bloqueadores cerrados.
+**Sección 2 completa.** Todos los bloqueadores funcionales cerrados. Vercel actúa como gate de producción con build + deploy automático.
 
 ## 3. Requisitos Mínimos De Launch Público
 
@@ -107,10 +112,11 @@ Definition of done:
   → `/api/admin/cleanup` purga uploads locales y objetos Supabase Storage fechados con más de 7 días.
 
 Nota:
-- Deploy automático en push a `main`. Último deploy: Ready, 36s.
+- Deploy automático en push a `main`. Último deploy verificado: `44cc681`, Ready.
 - Health check en producción confirma: fal reachable, supabase ready, storage supabase.
+- Health check también confirma: Stripe no configurado, Sentry no configurado, PostHog no configurado, queue `db-backed-with-in-process-worker`.
 
-### 3.2 Supabase ✅
+### 3.2 Supabase [~]
 
 - [x] Ejecutar migraciones en el proyecto de producción.
   → 16 migraciones verificadas, todas aplicadas al proyecto `lbcrvwbsxzcyrxvnjwtf`.
@@ -127,7 +133,9 @@ Nota:
 - [x] Validar lectura/escritura real desde la app desplegada.
   → `/api/admin/costs` responde correctamente contra Supabase prod.
 - [x] Buckets de storage verificados: `mockforge-inputs` y `mockforge-outputs` (públicos).
-- [ ] Confirmar backups y acceso operativo al proyecto.
+- [~] Confirmar backups y acceso operativo al proyecto.
+  → Acceso operativo por CLI confirmado (`supabase projects list`, proyecto `lbcrvwbsxzcyrxvnjwtf`).
+  → Backups verificados por CLI el 2026-04-25: `pitr_enabled=false`, `walg_enabled=true`, `backups=[]`. Falta activar/confirmar backups/PITR desde Supabase Dashboard o plan correspondiente.
 
 ### 3.3 Stripe
 
@@ -135,7 +143,7 @@ Nota:
 - [ ] Configurar `STRIPE_WEBHOOK_SECRET`.
 - [ ] Configurar `STRIPE_PRICE_SINGLE_PACK`.
 - [ ] Configurar `STRIPE_PRICE_BUNDLE`.
-  → Producción verificada 2026-04-25: faltan las 4 vars; checkout devuelve `PAYMENTS_NOT_CONFIGURED`.
+  → Producción re-verificada 2026-04-26: faltan las 4 vars; checkout/health reportan payments disabled.
 - [ ] Probar compra end-to-end en modo real o staging equivalente.
 - [ ] Verificar:
   - [ ] redirect a checkout
@@ -143,24 +151,28 @@ Nota:
   - [ ] recepción del webhook
   - [ ] grant de créditos
   - [ ] no duplicación ante reintentos
-- [ ] Tener procedimiento para soporte manual de pagos fallidos.
+- [x] Tener procedimiento para soporte manual de pagos fallidos.
+  → Documentado en `OPERATIONS.md`.
 
 ### 3.4 Observabilidad y operación
 
 - [ ] Configurar Sentry en producción.
-  → Producción verificada 2026-04-25: `sentryConfigured=false`.
+  → Producción re-verificada 2026-04-26: `sentryConfigured=false`.
 - [ ] Configurar PostHog si se va a usar desde el día 1.
-- [ ] Confirmar logs estructurados accesibles para incidentes.
-- [ ] Definir owner operativo para:
-  - [ ] fallos de generación
-  - [ ] fallos de Stripe
-  - [ ] storage
-  - [ ] Supabase
-- [ ] Definir alertas mínimas:
-  - [ ] spike de errores 5xx
-  - [ ] webhook failures
-  - [ ] budget exceeded
-  - [ ] storage fallback frecuente
+- [x] Confirmar logs estructurados accesibles para incidentes.
+  → `src/lib/logger.ts` emite JSON con `requestId`; `vercel logs mockforge-gray.vercel.app` accesible por CLI.
+- [x] Definir owner operativo para:
+  - [x] fallos de generación
+  - [x] fallos de Stripe
+  - [x] storage
+  - [x] Supabase
+  → Owner operativo de launch: Leo. Documentado en `OPERATIONS.md`.
+- [x] Definir alertas mínimas:
+  - [x] spike de errores 5xx
+  - [x] webhook failures
+  - [x] budget exceeded
+  - [x] storage fallback frecuente
+  → Definidas en `OPERATIONS.md`. Configuración real pendiente de Sentry/Stripe/Vercel/Supabase.
 
 ## 4. Producto y confianza pública
 
@@ -178,9 +190,10 @@ Nota:
   → 14 días, <50% de créditos usados. En Terms of Service.
 - [x] Definir política de retención/borrado de imágenes y generaciones.
   → Borrado dentro de 30 días. En Privacy Policy.
-- [~] Exponer un flujo real para borrado si se va a prometer GDPR/erasure.
-  → Los usuarios pueden borrar generaciones desde `/history`. Falta endpoint automático de account deletion.
-  → Contacto: support@mockforge.ai para solicitudes GDPR.
+- [x] Exponer un flujo mínimo real para borrado/erasure.
+  → Los usuarios pueden borrar generaciones desde `/history`.
+  → Privacy Policy permite solicitar borrado de cuenta/datos vía `support@mockforge.ai`.
+  → No hay endpoint automático de account deletion; aceptado como operación manual para launch.
 
 Definition of done:
 - No hay claims legales o de privacidad sin implementación mínima real.
@@ -196,15 +209,15 @@ Definition of done:
   - [x] `/success` — traducida, layout responsive
 - [x] Verificar estados de error legibles para:
   - [x] upload inválido → error visual en form + drag & drop muestra error si archivo no es PNG/JPG/WEBP
-  - [x] sin créditos → CreditsBadge muestra estado “low” en amber (falta CTA de compra hasta que Stripe esté configurado)
+  - [x] sin créditos → CreditsBadge muestra estado “low” y CTA hacia `/billing`; checkout falla limpio si Stripe no está configurado
   - [x] fallo de provider → tarjeta roja con mensaje de error en results-view
   - [x] timeout → error genérico con auto-clear a 6s en form
   - [x] pago no configurado → no crashea, checkout muestra error limpio
 - [x] Confirmar copy consistente en EN/ES como mínimo.
   → Todos los textos visibles traducidos en EN, ES, FR, PT, DE.
   → Gallery, credits badge, header nav, results loading — todo localizado (commit `21e6880`).
-- [~] Revisar si el tour onboarding debe salir a usuarios nuevos en launch.
-  → Tour existe (cookie `mockforge-tour-done`) pero es placeholder. No bloquea launch.
+- [x] Revisar si el tour onboarding debe salir a usuarios nuevos en launch.
+  → Tour existe (cookie `mockforge-tour-done`) pero es placeholder/no crítico. Aceptado para launch controlado; mejorar post-launch.
 
 **Mejoras aplicadas (commit `21e6880`):**
 - Gallery: copiado 100% localizado (antes era hardcoded en inglés)
@@ -215,8 +228,7 @@ Definition of done:
 - File picker: error visible al dropear archivo inválido
 
 **Pendientes menores (no bloquean launch):**
-- Credits badge “low” no tiene CTA de compra (espera Stripe)
-- Onboarding tour es placeholder
+- Onboarding tour es básico/placeholder; mejorar post-launch si métricas lo justifican.
 
 ## 5. API Pública
 
@@ -262,22 +274,26 @@ Si `/api/v1/generate` no sale en el launch:
 - [~] Variables de entorno revisadas
   → `.env.example` incluye Stripe, Sentry/PostHog y gate de API pública. Falta cargar/validar secretos reales en Vercel.
 - [ ] Secrets cargados correctamente
-- [ ] Migraciones aplicadas
+- [x] Migraciones aplicadas
+  → 16 migraciones verificadas en Supabase prod (`lbcrvwbsxzcyrxvnjwtf`).
 - [x] Build de producción validado
-  → `npm run build` OK local el 2026-04-24.
+  → `npm run build` OK local el 2026-04-26 y Vercel deploy `44cc681` Ready.
 - [~] Webhook de Stripe validado
   → Tests locales OK. Falta webhook real contra Stripe/Vercel.
 - [ ] Sentry recibiendo eventos
 - [x] No hay endpoints internos expuestos
   → `/api/admin/costs` requiere auth, `/api/debug/upload` 404 en producción y `/debug/upload` ahora devuelve 404 si no está explícitamente habilitado.
-- [ ] No hay placeholders legales visibles
-- [ ] No hay errores críticos abiertos de launch
+- [x] No hay placeholders legales visibles
+  → `/privacy`, `/terms`, `/cookies` responden 200 en producción; grep no encontró lorem/example/TODO en páginas legales.
+- [~] No hay errores críticos abiertos de launch
+  → No hay errores críticos de código conocidos tras lint/tests/build/e2e del 2026-04-26. Siguen abiertos bloqueadores operativos: Stripe, Sentry/PostHog, backups/PITR Supabase, secrets finales y smoke final.
 
 ## 7. Pendientes Aceptables Post-Launch Cercano
 
 Estas no deberían bloquear una primera apertura pública controlada si todo lo anterior está resuelto.
 
-- [ ] Reemplazar la queue en memoria por una durable.
+- [ ] Activar GitHub Actions CI como PR check (workflow existe en `mockforge/.github/workflows/ci.yml`, mover a raíz del repo).
+- [ ] Extraer la queue DB-backed a worker/proceso durable externo.
 - [ ] Mejorar multi-región real.
 - [ ] Refactor adicional de `mockup-upload-form.tsx`.
 - [ ] Mejorar tracing distribuido.
@@ -289,23 +305,33 @@ Estas no deberían bloquear una primera apertura pública controlada si todo lo 
 Se puede considerar "listo para público general" cuando:
 
 - [x] Todos los bloqueadores de la sección 2 están completos
+  → Vercel actúa como gate de producción. GitHub Actions movido a post-launch.
 - [ ] Todos los requisitos mínimos de la sección 3 están completos
-- [ ] La sección 4 tiene implementación mínima real
+- [x] La sección 4 tiene implementación mínima real
 - [ ] La validación final de la sección 6 está completa
-- [ ] Existe owner operativo para incidentes de launch
+- [x] Existe owner operativo para incidentes de launch
+  → Leo, documentado en `OPERATIONS.md`.
 
 ## 9. Orden Recomendado De Ejecución
 
 1. ~~Corregir uploads/fallback.~~ ✅
 2. ~~Corregir créditos/cobros.~~ ✅
-3. ~~Dejar CI y build verdes.~~ ✅
+3. ~~Dejar lint/tests/build/e2e locales verdes.~~ ✅
 4. ~~Cerrar exposición de endpoints internos.~~ ✅
-5. Configurar producción real: Supabase, storage, Stripe, secrets.
-6. Cerrar legal mínimo y footer.
-7. Ejecutar smoke final en staging.
-8. Abrir tráfico público.
+5. Configurar producción real pendiente: Stripe, Sentry/PostHog, backups/PITR Supabase, secrets finales.
+6. Ejecutar smoke final en producción/staging equivalente.
+7. Abrir tráfico público controlado.
 
 ## Changelog
+
+- **2026-04-26** — Revisión de estado de launch:
+  - `npm run lint` ✅
+  - `npm test` ✅
+  - `npm run build` ✅
+  - `npm run test:e2e` ✅
+  - Health producción `/api/provider/health` ✅: fal reachable, Supabase Storage ready, queue DB-backed.
+  - Bloqueadores siguen siendo operativos: Stripe no configurado, Sentry/PostHog no configurados, backups/PITR Supabase sin confirmar, smoke manual final pendiente.
+  - Nota de riesgo: repo local sigue con cambios sin commit; revisar antes de deploy/launch.
 
 - **2026-04-22** — Sección 2 completada:
   - 2.1: Exportado `resolveFalImageUrl`, corregido upscale y video para resolver URLs locales antes de enviar a fal.ai.

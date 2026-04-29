@@ -6,6 +6,7 @@ import { recordGenerationLatency } from "@/lib/region";
 import { withSpan } from "@/lib/tracing";
 import { maybeGrantFreeTrial, deductCredits, refundCreditsAmount } from "@/lib/credits";
 import { recordGenerationCost } from "@/lib/cost-control";
+import { captureException } from "@/lib/sentry";
 import type { GenerationJobInput, GenerationJobState } from "@/lib/job-queue-types";
 
 export type { GenerationJobInput, GenerationJobState };
@@ -119,6 +120,7 @@ export function enqueueGenerationJob(input: GenerationJobInput) {
       incrementMetric("generationCompleted");
       recordGenerationCost(result.variant);
     } catch (error) {
+      captureException(error, { route: "job-queue", jobId: id, preset: input.preset, variant });
       if (creditsCharged && sessionId) {
         await refundCreditsAmount(sessionId, chargedCost, "refund_generation_job_failed");
       }

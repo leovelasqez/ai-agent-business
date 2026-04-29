@@ -10,6 +10,7 @@ import { maybeGrantFreeTrial, deductCredits, refundCreditsAmount, CREDIT_COST } 
 import { getTrustedSessionIdFromRequest } from "@/lib/session";
 import { getServerUser } from "@/lib/supabase-server";
 import { withSpan, getTraceId } from "@/lib/tracing";
+import { captureException } from "@/lib/sentry";
 import type { PresetId } from "@/lib/presets";
 
 export async function POST(request: Request) {
@@ -114,19 +115,34 @@ export async function POST(request: Request) {
     );
   }
 
-  await maybeGrantFreeTrial(sessionId);
   const cost = CREDIT_COST[variant] ?? 1;
-  const { ok: hasCredits, balance: currentBalance } = await deductCredits(sessionId, variant);
-  if (!hasCredits) {
-    return jsonWithRequestId(
-      {
-        ok: false,
-        error: "INSUFFICIENT_CREDITS",
-        message: "You have no credits left. Purchase a pack to continue generating.",
-        data: { balance: currentBalance, cost },
-      },
+  try {
+    await maybeGrantFreeTrial(sessionId);
+    const { ok: hasCredits, balance: currentBalance } = await deductCredits(sessionId, variant);
+    if (!hasCredits) {
+      return jsonWithRequestId(
+        {
+          ok: false,
+          error: "INSUFFICIENT_CREDITS",
+          message: "You have no credits left. Purchase a pack to continue generating.",
+          data: { balance: currentBalance, cost },
+        },
+        requestId,
+        { status: 402 },
+      );
+    }
+  } catch (error) {
+    captureException(error, { route: "/api/generate", requestId, stage: "credits", preset, variant });
+    log("error", "credit check failed", {
       requestId,
-      { status: 402 },
+      route: "/api/generate",
+      method: "POST",
+      extra: { preset, variant, error: error instanceof Error ? error.message : String(error) },
+    });
+    return jsonWithRequestId(
+      { ok: false, error: "CREDIT_SYSTEM_UNAVAILABLE", message: "Credit system unavailable. Try again shortly." },
+      requestId,
+      { status: 503 },
     );
   }
 
@@ -182,6 +198,8 @@ export async function POST(request: Request) {
     await refundCreditsAmount(sessionId, cost, "refund_generate_failed");
     const message = error instanceof Error ? error.message : "Unknown provider error";
     const friendlyMessage = mapProviderError(message);
+
+    captureException(error, { route: "/api/generate", requestId, preset, variant });
 
     log("error", "generation failed", {
       requestId,

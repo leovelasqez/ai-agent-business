@@ -18,6 +18,16 @@
 
 import { getSupabaseServiceClient, isSupabaseConfigured } from "@/lib/supabase";
 
+function shouldFailClosedOnCreditDbError(): boolean {
+  return process.env.NODE_ENV === "production" && isSupabaseConfigured();
+}
+
+function rethrowInProduction(error: unknown): void {
+  if (shouldFailClosedOnCreditDbError()) {
+    throw error;
+  }
+}
+
 export const CREDIT_TIERS = {
   free_trial: 3,
   purchase_single: 10,
@@ -167,7 +177,8 @@ export async function getBalance(sessionId: string): Promise<number> {
   if (!isSupabaseConfigured()) return memGetBalance(sessionId);
   try {
     return await dbGetBalance(sessionId);
-  } catch {
+  } catch (error) {
+    rethrowInProduction(error);
     return memGetBalance(sessionId);
   }
 }
@@ -196,7 +207,8 @@ export async function deductCreditsAmount(
   try {
     const result = await dbDeduct(sessionId, cost, generationId);
     return { ok: result.ok, balance: result.balance, cost };
-  } catch {
+  } catch (error) {
+    rethrowInProduction(error);
     const ok = memDeduct(sessionId, cost);
     return { ok, balance: memGetBalance(sessionId), cost };
   }
@@ -220,7 +232,8 @@ export async function grantCredits(
   try {
     const result = await dbCredit(sessionId, amount, tier, stripeSession);
     return result.balance;
-  } catch {
+  } catch (error) {
+    rethrowInProduction(error);
     memCredit(sessionId, amount);
     return memGetBalance(sessionId);
   }
@@ -243,8 +256,9 @@ export async function maybeGrantFreeTrial(sessionId: string): Promise<number> {
         .select("id", { count: "exact", head: true })
         .eq("session_id", sessionId);
       if ((count ?? 0) > 0) return 0; // Already received free trial
-    } catch {
-      // fall through to grant
+    } catch (error) {
+      rethrowInProduction(error);
+      // fall through to grant in local/dev fallback mode
     }
   }
 
@@ -272,7 +286,8 @@ export async function refundCreditsAmount(
   try {
     const result = await dbCredit(sessionId, amount, reason);
     return result.balance;
-  } catch {
+  } catch (error) {
+    rethrowInProduction(error);
     memCredit(sessionId, amount);
     return memGetBalance(sessionId);
   }

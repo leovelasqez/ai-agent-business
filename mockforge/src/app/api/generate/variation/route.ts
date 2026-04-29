@@ -5,6 +5,7 @@ import { maybeGrantFreeTrial, deductCredits, refundCreditsAmount, CREDIT_COST } 
 import { runGeneration, assertImageProviderReady } from "@/lib/image-provider";
 import { insertGeneration } from "@/lib/db/generations";
 import { getTrustedSessionIdFromRequest } from "@/lib/session";
+import { captureException } from "@/lib/sentry";
 import type { PresetId } from "@/lib/presets";
 import type { GenerationVariant } from "@/lib/image-provider";
 
@@ -84,13 +85,21 @@ export async function POST(request: Request) {
     );
   }
 
-  await maybeGrantFreeTrial(sessionId);
   const cost = CREDIT_COST[v] ?? 1;
-  const { ok: hasCredits, balance } = await deductCredits(sessionId, v);
-  if (!hasCredits) {
+  try {
+    await maybeGrantFreeTrial(sessionId);
+    const { ok: hasCredits, balance } = await deductCredits(sessionId, v);
+    if (!hasCredits) {
+      return NextResponse.json(
+        { ok: false, error: "INSUFFICIENT_CREDITS", message: "No credits left.", data: { balance, cost } },
+        { status: 402 },
+      );
+    }
+  } catch (error) {
+    captureException(error, { route: "/api/generate/variation", stage: "credits", preset, variant: v });
     return NextResponse.json(
-      { ok: false, error: "INSUFFICIENT_CREDITS", message: "No credits left.", data: { balance, cost } },
-      { status: 402 },
+      { ok: false, error: "CREDIT_SYSTEM_UNAVAILABLE", message: "Credit system unavailable. Try again shortly." },
+      { status: 503 },
     );
   }
 
@@ -140,6 +149,7 @@ export async function POST(request: Request) {
     });
   } catch (err) {
     await refundCreditsAmount(sessionId, cost, "refund_variation_failed");
+    captureException(err, { route: "/api/generate/variation", preset, variant: v });
     const message = err instanceof Error ? err.message : "Variation generation failed";
     return NextResponse.json({ ok: false, message }, { status: 500 });
   }

@@ -7,6 +7,7 @@ import { maybeGrantFreeTrial, deductCredits, refundCreditsAmount, CREDIT_COST } 
 import { validateSourceImageUrl } from "@/lib/image-provider";
 import { getTrustedSessionIdFromRequest } from "@/lib/session";
 import { resolveFalImageUrl } from "@/lib/providers/fal";
+import { captureException } from "@/lib/sentry";
 
 function getFalKey() {
   const key = process.env.FAL_KEY;
@@ -55,13 +56,21 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: false, message: "FAL_KEY not configured." }, { status: 503 });
   }
 
-  await maybeGrantFreeTrial(sessionId);
   const cost = CREDIT_COST.upscale;
-  const { ok: hasCredits, balance } = await deductCredits(sessionId, "upscale");
-  if (!hasCredits) {
+  try {
+    await maybeGrantFreeTrial(sessionId);
+    const { ok: hasCredits, balance } = await deductCredits(sessionId, "upscale");
+    if (!hasCredits) {
+      return NextResponse.json(
+        { ok: false, error: "INSUFFICIENT_CREDITS", message: "No credits left.", data: { balance, cost } },
+        { status: 402 },
+      );
+    }
+  } catch (error) {
+    captureException(error, { route: "/api/generate/upscale", stage: "credits" });
     return NextResponse.json(
-      { ok: false, error: "INSUFFICIENT_CREDITS", message: "No credits left.", data: { balance, cost } },
-      { status: 402 },
+      { ok: false, error: "CREDIT_SYSTEM_UNAVAILABLE", message: "Credit system unavailable. Try again shortly." },
+      { status: 503 },
     );
   }
 
@@ -92,6 +101,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true, data: { url: saved.publicPath } });
   } catch (err) {
     await refundCreditsAmount(sessionId, cost, "refund_upscale_failed");
+    captureException(err, { route: "/api/generate/upscale" });
     const message = err instanceof Error ? err.message : "Upscale failed";
     return NextResponse.json({ ok: false, message }, { status: 500 });
   }

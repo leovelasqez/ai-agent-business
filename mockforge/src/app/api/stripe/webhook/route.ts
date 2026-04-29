@@ -1,6 +1,7 @@
 import Stripe from "stripe";
 import { NextResponse } from "next/server";
 import { grantCredits } from "@/lib/credits";
+import { captureException } from "@/lib/sentry";
 
 // Stripe requires the raw request body for signature verification.
 // In Next.js App Router, request.text() provides it before any parsing.
@@ -22,6 +23,7 @@ export async function POST(request: Request) {
     event = stripe.webhooks.constructEvent(body, sig, webhookSecret);
   } catch (err) {
     const message = err instanceof Error ? err.message : "Signature verification failed";
+    captureException(err, { route: "/api/stripe/webhook", stage: "signature_verification" });
     console.error("[stripe/webhook] invalid signature:", message);
     return NextResponse.json({ error: message }, { status: 400 });
   }
@@ -45,7 +47,12 @@ export async function POST(request: Request) {
 
     if (paymentStatus === "paid" && clientSessionId) {
       const tier = pkg === "bundle" ? "purchase_bundle" : "purchase_single";
-      await grantCredits(clientSessionId, tier, session.id);
+      try {
+        await grantCredits(clientSessionId, tier, session.id);
+      } catch (error) {
+        captureException(error, { route: "/api/stripe/webhook", sessionId: session.id, tier });
+        throw error;
+      }
     }
   }
 

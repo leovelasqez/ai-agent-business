@@ -128,6 +128,68 @@ async function testVariantDCost() {
   console.log("✓ testVariantDCost");
 }
 
+
+async function withEnv<T>(env: Record<string, string | undefined>, fn: () => Promise<T>): Promise<T> {
+  const previous: Record<string, string | undefined> = {};
+  for (const key of Object.keys(env)) {
+    previous[key] = process.env[key];
+    const value = env[key];
+    if (value === undefined) {
+      delete process.env[key];
+    } else {
+      process.env[key] = value;
+    }
+  }
+
+  try {
+    return await fn();
+  } finally {
+    for (const key of Object.keys(previous)) {
+      const value = previous[key];
+      if (value === undefined) {
+        delete process.env[key];
+      } else {
+        process.env[key] = value;
+      }
+    }
+  }
+}
+
+async function testSupabaseDbErrorFallsBackOutsideProduction() {
+  await withEnv(
+    {
+      NODE_ENV: "test",
+      NEXT_PUBLIC_SUPABASE_URL: "not-a-valid-url",
+      SUPABASE_SERVICE_ROLE_KEY: "test-service-role-key",
+    },
+    async () => {
+      const id = uid();
+      const balance = await getBalance(id);
+      assert.equal(balance, 0, "DB errors should still fall back to memory outside production");
+    },
+  );
+  console.log("✓ testSupabaseDbErrorFallsBackOutsideProduction");
+}
+
+async function testSupabaseDbErrorFailsClosedInProduction() {
+  await withEnv(
+    {
+      NODE_ENV: "production",
+      NEXT_PUBLIC_SUPABASE_URL: "not-a-valid-url",
+      SUPABASE_SERVICE_ROLE_KEY: "test-service-role-key",
+    },
+    async () => {
+      const id = uid();
+      await assert.rejects(
+        () => getBalance(id),
+        /Invalid URL|supabase/i,
+        "DB errors must not fall back to memory in production when Supabase is configured",
+      );
+    },
+  );
+  console.log("✓ testSupabaseDbErrorFailsClosedInProduction");
+}
+
 // ── Runner ───────────────────────────────────────────────────────────────────
 
 async function main() {
@@ -141,6 +203,8 @@ async function main() {
   await testUpscaleCost();
   await testVideoCost();
   await testVariantDCost();
+  await testSupabaseDbErrorFallsBackOutsideProduction();
+  await testSupabaseDbErrorFailsClosedInProduction();
 
   console.log("\n✅ All credit tests passed.");
 }

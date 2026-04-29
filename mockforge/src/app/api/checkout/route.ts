@@ -2,6 +2,7 @@ import Stripe from "stripe";
 import { NextResponse } from "next/server";
 import { getTrustedSessionIdFromRequest } from "@/lib/session";
 import { getServerUser } from "@/lib/supabase-server";
+import { captureException } from "@/lib/sentry";
 
 const PACKAGES = {
   single: { envKey: "STRIPE_PRICE_SINGLE_PACK", label: "MockForge · Single Pack" },
@@ -68,6 +69,7 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Stripe error";
+    captureException(error, { route: "/api/checkout", packageKey, generationId });
     console.error("[checkout] Stripe session creation failed:", message);
     return NextResponse.json(
       { ok: false, error: "CHECKOUT_FAILED", message: "Could not create checkout session. Try again." },

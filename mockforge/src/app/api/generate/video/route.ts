@@ -9,6 +9,7 @@ import { maybeGrantFreeTrial, deductCredits, refundCreditsAmount, CREDIT_COST } 
 import { validateSourceImageUrl } from "@/lib/image-provider";
 import { getTrustedSessionIdFromRequest } from "@/lib/session";
 import { resolveFalImageUrl } from "@/lib/providers/fal";
+import { captureException } from "@/lib/sentry";
 
 const KLING_MODEL = "fal-ai/kling-video/v2/master/image-to-video";
 
@@ -98,19 +99,34 @@ export async function POST(request: Request) {
     extra: { preset, productName, imageUrl },
   });
 
-  await maybeGrantFreeTrial(sessionId);
   const cost = CREDIT_COST.video;
-  const { ok: hasCredits, balance } = await deductCredits(sessionId, "video");
-  if (!hasCredits) {
-    return jsonWithRequestId(
-      {
-        ok: false,
-        error: "INSUFFICIENT_CREDITS",
-        message: "No credits left.",
-        data: { balance, cost },
-      },
+  try {
+    await maybeGrantFreeTrial(sessionId);
+    const { ok: hasCredits, balance } = await deductCredits(sessionId, "video");
+    if (!hasCredits) {
+      return jsonWithRequestId(
+        {
+          ok: false,
+          error: "INSUFFICIENT_CREDITS",
+          message: "No credits left.",
+          data: { balance, cost },
+        },
+        requestId,
+        { status: 402 },
+      );
+    }
+  } catch (error) {
+    captureException(error, { route: "/api/generate/video", requestId, stage: "credits", preset, productName });
+    log("error", "video credit check failed", {
       requestId,
-      { status: 402 },
+      route: "/api/generate/video",
+      method: "POST",
+      extra: { preset, productName, error: error instanceof Error ? error.message : String(error) },
+    });
+    return jsonWithRequestId(
+      { ok: false, error: "CREDIT_SYSTEM_UNAVAILABLE", message: "Credit system unavailable. Try again shortly." },
+      requestId,
+      { status: 503 },
     );
   }
 
@@ -172,6 +188,7 @@ export async function POST(request: Request) {
     );
   } catch (error) {
     await refundCreditsAmount(sessionId, cost, "refund_video_failed");
+    captureException(error, { route: "/api/generate/video", requestId, preset, productName });
     const message = error instanceof Error ? error.message : "Unknown error";
     const friendly = mapProviderError(message);
 
